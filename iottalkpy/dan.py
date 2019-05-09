@@ -23,13 +23,16 @@ you can use::
 
 '''
 import json
-import requests
 import logging
+import queue
 
 from threading import Lock
 from uuid import UUID, uuid4
 
+import requests
+
 from paho.mqtt import client as mqtt
+from paho.mqtt.client import MQTT_ERR_SUCCESS
 
 DAN_COLOR = "\033[1;35m"
 DEFAULT_COLOR = "\033[0m"
@@ -129,6 +132,7 @@ class Context(object):
         self.on_signal = None
         self.on_data = None
         self.register_callback = None
+        self._mqueue = queue.Queue()  # storing the MQTTMessageInfo from ``publish``
 
     def __str__(self):
         return '[{}/{}, mqtt://{}:{}]'.format(
@@ -163,12 +167,6 @@ def _invalid_url(url):
 class Client(object):
     def __init__(self):
         self.context = Context()
-
-        self._online_msginfo = None
-
-        self._sub_lock = Lock()  # lock for ctrl channel subscribe finished
-        self._sub_lock.acquire()
-
         self._is_reconnect = False
 
     def _on_connect(self, client, userdata, flags, rc):
@@ -180,15 +178,18 @@ class Client(object):
                      _wrapc(DATA_COLOR, self.context.app_id))
             log.info('Device name: %s.',
                      _wrapc(DATA_COLOR, self.context.name))
-            client.on_subscribe = self._on_ctrl_sub
-            client.subscribe(self.context.o_chans['ctrl'], qos=2)
 
-            self._online_msginfo = client.publish(
+            res, _ = client.subscribe(self.context.o_chans['ctrl'], qos=2)
+            if res != MQTT_ERR_SUCCESS:
+                raise Exception('Subscribe to control channel failed')
+
+            msg = client.publish(
                 self.context.i_chans['ctrl'],
                 json.dumps({'state': 'online', 'rev': self.context.rev}),
                 retain=True,
                 qos=2
             )
+            self.context._mqueue.put(msg)
         else:  # in case of reconnecting, we need to renew all subscriptions
             log.info('Reconnect: %s.', _wrapc(DATA_COLOR, self.context.name))
             for k, topic in self.context.o_chans.items():
@@ -200,10 +201,6 @@ class Client(object):
             self.context.register_callback()
 
         self._is_reconnect = True
-
-    def _on_ctrl_sub(self, client, userdata, mid, qos):
-        client.on_subscribe = None
-        self._sub_lock.release()
 
     def _on_message(self, client, userdata, msg):
         if self.context.mqtt_client is not client:
@@ -353,14 +350,14 @@ class Client(object):
             raise RegistrationError('ConnectionError')
 
         metadata = response.json()
-        ctx = self.contex
+        ctx = self.context
         ctx.name = metadata['name']
         ctx.mqtt_host = metadata['url']['host']
         ctx.mqtt_port = metadata['url']['port']
         ctx.i_chans['ctrl'] = metadata['ctrl_chans'][0]
         ctx.o_chans['ctrl'] = metadata['ctrl_chans'][1]
         ctx.rev = rev = metadata['rev']
-        ctx.mqtt_client = mqtt.Client(client_id='iottalk-py-{}'.format(uuid4.hex()))
+        ctx.mqtt_client = mqtt.Client(client_id='iottalk-py-{}'.format(uuid4().hex))
         ctx.mqtt_client.on_message = self._on_message
         ctx.mqtt_client.on_connect = self._on_connect
         ctx.mqtt_client.on_disconnect = self._on_disconnect
@@ -370,6 +367,7 @@ class Client(object):
             json.dumps({'state': 'broken', 'rev': rev}),
             retain=True,
         )
+        # ctx.mqtt_client.user_data_set(ctx)
         ctx.mqtt_client.connect(
             self.context.mqtt_host,
             port=self.context.mqtt_port,
@@ -380,9 +378,13 @@ class Client(object):
         ctx.on_signal = on_signal
         ctx.on_data = on_data
 
-        self._online_msginfo.wait_for_publish()  # wait for online message published
-        log.debug('Online info published')
-        self._sub_lock.acquire()  # wait for ctrl channel subscribed
+        try:
+            msg = ctx._mqueue.get(timeout=5)
+            msg.wait_for_publish()
+        except queue.Empty:
+            log.error('MQTT connection timeout')
+            raise
+        log.debug('Online message published')
 
         return self.context
 
