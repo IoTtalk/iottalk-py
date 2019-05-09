@@ -3,6 +3,8 @@ import sys
 
 from setuptools import find_packages, setup
 
+import iottalkpy
+
 BASE_DIR = os.path.dirname(__file__)
 
 
@@ -18,7 +20,7 @@ def get_test_requires():
 
 setup(
     name='iottalk',
-    version='0.0.1',
+    version=iottalkpy.version,
     author='the IoTtalk team',
     author_email='IoTtalkcontributors',
     maintainer='Iblis Lin',
