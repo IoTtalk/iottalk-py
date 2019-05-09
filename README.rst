@@ -42,3 +42,4 @@ Minimal example
             'model': 'AI',
         },
     )
+    client.loop_forever()
