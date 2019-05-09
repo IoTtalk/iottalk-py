@@ -290,7 +290,8 @@ class Client(object):
                          with the feature name and unit information provided,
                          e.g. ('meow', ('dB'))
         :param odf_list: the Output Device Feature list of the application.
-        :param accept_protos: the protocols accepted by the application
+        :param accept_protos: the protocols accepted by the application.
+                              default is ``['mqtt']``.
         :param profile: an abitrary json data field
         :param register_callback: the callable function invoked
                while `on_connect` successful.
@@ -328,7 +329,7 @@ class Client(object):
         if odf_list:
             body['odf_list'] = odf_list
 
-        body['accept_protos'] = accept_protos
+        body['accept_protos'] = accept_protos if accept_protos else ['mqtt']
 
         if profile:
             body['profile'] = profile
