@@ -17,7 +17,9 @@ Installation
 Usage
 ----------------------------------------------------------------------
 
-Minimal example::
+Minimal example
+
+.. code-block:: python
 
     from iottalkpy import dan
 
