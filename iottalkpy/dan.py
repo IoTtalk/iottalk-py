@@ -183,13 +183,6 @@ class Client(object):
             if res != MQTT_ERR_SUCCESS:
                 raise Exception('Subscribe to control channel failed')
 
-            msg = client.publish(
-                self.context.i_chans['ctrl'],
-                json.dumps({'state': 'online', 'rev': self.context.rev}),
-                retain=True,
-                qos=2
-            )
-            self.context._mqueue.put(msg)
         else:  # in case of reconnecting, we need to renew all subscriptions
             log.info('Reconnect: %s.', _wrapc(DATA_COLOR, self.context.name))
             for k, topic in self.context.o_chans.items():
@@ -197,6 +190,13 @@ class Client(object):
                          _wrapc(DATA_COLOR, k), _wrapc(DATA_COLOR, topic))
                 client.subscribe(topic, qos=2)
 
+        msg = client.publish(
+            self.context.i_chans['ctrl'],
+            json.dumps({'state': 'online', 'rev': self.context.rev}),
+            retain=True,
+            qos=2
+        )
+        self.context._mqueue.put(msg)
         if self.context.register_callback:
             self.context.register_callback()
 
