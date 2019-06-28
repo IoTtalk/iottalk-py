@@ -19,7 +19,7 @@ def get_test_requires():
 
 
 setup(
-    name='iottalk',
+    name='iottalk-py',
     version=iottalkpy.version,
     author='the IoTtalk team',
     author_email='IoTtalkcontributors',

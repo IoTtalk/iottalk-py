@@ -5,6 +5,12 @@ Current supported module:
 
 - Device Application to Network (DAN)
 
+Supported Python version:
+
+- 3.5
+- 3.6
+- 3.7
+
 
 Installation
 ----------------------------------------------------------------------
