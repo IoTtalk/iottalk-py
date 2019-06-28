@@ -34,6 +34,9 @@ import requests
 from paho.mqtt import client as mqtt
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 
+__all__ = ('NoData', 'Client', 'push', 'register', 'deregistration',
+           'loop_forever')
+
 DAN_COLOR = "\033[1;35m"
 DEFAULT_COLOR = "\033[0m"
 DATA_COLOR = "\033[1;33m"
@@ -164,7 +167,7 @@ def _invalid_url(url):
     return url is None or url == ''
 
 
-class Client(object):
+class Client:
     def __init__(self):
         self.context = Context()
         self._is_reconnect = False
