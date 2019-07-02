@@ -22,7 +22,7 @@ setup(
     name='iottalk-py',
     version=iottalkpy.version,
     author='the IoTtalk team',
-    author_email='IoTtalkcontributors',
+    author_email='iblis@hs.ntnu.edu.tw',
     maintainer='Iblis Lin',
     maintainer_email=('iblis@hs.ntnu.edu.tw'),
     url='https://github.com/IoTtalk/iottalk-py',

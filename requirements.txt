@@ -1,2 +1,2 @@
-paho-mqtt @ git+https://github.com/iblis17/paho.mqtt.python.git@5f5cba6
+iottalk-paho-mqtt==1.4.0.dev2
 requests==2.21.0
