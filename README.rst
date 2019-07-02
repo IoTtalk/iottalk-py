@@ -49,3 +49,9 @@ Minimal example
         },
     )
     client.loop_forever()
+
+
+TODO
+----------------------------------------------------------------------
+
+#. Auto generate doc via Sphinx
