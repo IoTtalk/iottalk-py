@@ -371,7 +371,6 @@ class Client:
             json.dumps({'state': 'broken', 'rev': rev}),
             retain=True,
         )
-        # ctx.mqtt_client.user_data_set(ctx)
         ctx.mqtt_client.connect(
             self.context.mqtt_host,
             port=self.context.mqtt_port,
