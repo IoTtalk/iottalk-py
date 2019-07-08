@@ -4,14 +4,14 @@ This module wraps the mqtt API into IoTtalk client API
 If your process contain sigle Device,
 you can use::
 
-    import dan
+    from iottalkpy import dan
     dan.register(...)
 
 
 Or your process contain multiple Device,
 you can use::
 
-    from dan import Client
+    from iottalkpy.dan import Client
 
     # for device 1
     dan1 = Client()
