@@ -25,6 +25,7 @@ you can use::
 import json
 import logging
 import queue
+import time
 
 from threading import Lock
 from uuid import UUID, uuid4
@@ -134,7 +135,10 @@ class Context(object):
         self.rev = None
         self.on_signal = None
         self.on_data = None
-        self.register_callback = None
+        self.on_register = None
+        self.on_deregister = None
+        self.on_connect = None
+        self.on_disconnect = None
         self._mqueue = queue.Queue()  # storing the MQTTMessageInfo from ``publish``
 
     def __str__(self):
@@ -188,10 +192,18 @@ class Client:
 
         else:  # in case of reconnecting, we need to renew all subscriptions
             log.info('Reconnect: %s.', _wrapc(DATA_COLOR, self.context.name))
+            client.publish(
+                self.context.i_chans['ctrl'],
+                json.dumps({'state': 'broken', 'rev': self.context.rev}),
+                retain=True,
+                qos=2
+            )
             for k, topic in self.context.o_chans.items():
                 log.info('Renew subscriptions for %s -> %s',
                          _wrapc(DATA_COLOR, k), _wrapc(DATA_COLOR, topic))
                 client.subscribe(topic, qos=2)
+            # FIXME: online msg may eariler then broken, race condition
+            time.sleep(1)
 
         msg = client.publish(
             self.context.i_chans['ctrl'],
@@ -200,10 +212,11 @@ class Client:
             qos=2
         )
         self.context._mqueue.put(msg)
-        if self.context.register_callback:
-            self.context.register_callback()
 
         self._is_reconnect = True
+
+        if self.context.on_connect:
+            self.context.on_connect()
 
     def _on_message(self, client, userdata, msg):
         if self.context.mqtt_client is not client:
@@ -275,11 +288,16 @@ class Client:
         if hasattr(self, '_disconn_lock'):  # we won't have it if reconnecting
             self._disconn_lock.release()
 
+        if self.context.on_disconnect:
+            self.context.on_disconnect()
+
     def register(self, url, on_signal, on_data,
                  id_=None, name=None,
                  idf_list=None, odf_list=None,
                  accept_protos=None,
-                 profile=None, register_callback=None):
+                 profile=None, register_callback=None,
+                 on_register=None, on_deregister=None,
+                 on_connect=None, on_disconnect=None):
         ''' Register to an IoTtalk server.
 
         :param url: the url of Iottalk server
@@ -296,8 +314,20 @@ class Client:
         :param accept_protos: the protocols accepted by the application.
                               default is ``['mqtt']``.
         :param profile: an abitrary json data field
-        :param register_callback: the callable function invoked
-               while `on_connect` successful.
+        :param on_register: the callable function invoked
+                            while the registeration succeeded.
+        :param register_callback: this is deprecated, please use ``on_register``
+                                  instead.
+        :param on_deregister: the callable function invoked
+                              while the deregistration succeeded.
+        :param on_connect: the callable function invoked while the MQTT
+                           client connected.
+                           Note that this function might be called multiple
+                           times if the client keep reconnecting.
+        :param on_disconnect: the callable function invoked while the MQTT
+                              client disconnected.
+                              Note that this function might be called multiple
+                              times if the client lose the connection.
         :type url: str
         :type on_signal: Function
         :type on_data: Function
@@ -310,15 +340,17 @@ class Client:
         :returns: the json object responsed from server if registration succeed
         :raises: RegistrationError if already registered or registration failed
         '''
-        if self.context.mqtt_client:
+        ctx = self.context
+
+        if ctx.mqtt_client:
             raise RegistrationError('Already registered')
 
-        self.context.url = url
-        if _invalid_url(self.context.url):
-            raise RegistrationError('Invalid url: "{}"'.format(self.context.url))
+        ctx.url = url
+        if _invalid_url(ctx.url):
+            raise RegistrationError('Invalid url: "{}"'.format(ctx.url))
 
         try:
-            self.context.app_id = UUID(id_) if id_ else uuid4()
+            ctx.app_id = UUID(id_) if id_ else uuid4()
         except ValueError:
             raise RegistrationError('Invalid UUID: {!r}'.format(id_))
 
@@ -337,11 +369,23 @@ class Client:
         if profile:
             body['profile'] = profile
 
-        self.context.register_callback = register_callback
+        _reg_msg = 'register_callback is deprecated, please use `on_register` instead.'
+        if on_register and register_callback:
+            raise RegistrationError(_reg_msg)
+        elif on_register:
+            ctx.on_register = on_register
+        elif register_callback:
+            log.warning(_reg_msg)
+            ctx.on_register = register_callback
+
+        # other callbacks
+        ctx.on_deregister = on_deregister
+        ctx.on_connect = on_connect
+        ctx.on_disconnect = on_disconnect
 
         try:
             response = requests.put(
-                '{}/{}'.format(self.context.url, self.context.app_id),
+                '{}/{}'.format(ctx.url, ctx.app_id),
                 headers={
                     'Content-Type': 'application/json',
                 },
@@ -354,7 +398,6 @@ class Client:
             raise RegistrationError('ConnectionError')
 
         metadata = response.json()
-        ctx = self.context
         ctx.name = metadata['name']
         ctx.mqtt_host = metadata['url']['host']
         ctx.mqtt_port = metadata['url']['port']
@@ -389,7 +432,10 @@ class Client:
             raise
         log.debug('Online message published')
 
-        return self.context
+        if ctx.on_register:
+            ctx.on_register()
+
+        return ctx
 
     def deregister(self):
         ''' Deregister from an IoTtalk server.
@@ -399,28 +445,30 @@ class Client:
 
         :raises: RegistrationError if not registered or deregistration failed
         '''
-        if not self.context.mqtt_client:
+        ctx = self.context
+
+        if not ctx.mqtt_client:
             raise RegistrationError('Not registered')
 
         # FIXME: replace lock with ``wait_for_publish``
         self._disconn_lock = Lock()
         self._disconn_lock.acquire()
 
-        self.context.mqtt_client.on_publish = self._on_offline_pub
-        self.context.mqtt_client.publish(
-            self.context.i_chans['ctrl'],
-            json.dumps({'state': 'offline', 'rev': self.context.rev}),
+        ctx.mqtt_client.on_publish = self._on_offline_pub
+        ctx.mqtt_client.publish(
+            ctx.i_chans['ctrl'],
+            json.dumps({'state': 'offline', 'rev': ctx.rev}),
             retain=True,
             qos=2,
         )
 
         try:
             response = requests.delete(
-                '{}/{}'.format(self.context.url, self.context.app_id),
+                '{}/{}'.format(ctx.url, ctx.app_id),
                 headers={
                     'Content-Type': 'application/json'
                 },
-                data=json.dumps({'rev': self.context.rev})
+                data=json.dumps({'rev': ctx.rev})
             )
 
             if response.status_code != 200:
@@ -430,7 +478,10 @@ class Client:
 
         self._disconn_lock.acquire()  # wait for disconnect finished
         del self._disconn_lock
-        self.context.mqtt_client = None
+        ctx.mqtt_client = None
+
+        if ctx.on_deregister:
+            ctx.on_deregister()
 
         return response.json()
 
@@ -463,13 +514,6 @@ class Client:
 
         return True
 
-    def loop_forever(self):
-        if not self.context or not self.context.mqtt_client:
-            log.error('please register first')
-            return
-
-        self.context.mqtt_client.loop_forever()
-
 
 
 _default_client = Client()
@@ -485,7 +529,3 @@ def deregister():
 
 def push(idf, data, **kwargs):
     return _default_client.push(idf, data, **kwargs)
-
-
-def loop_forever():
-    _default_client.loop_forever()
