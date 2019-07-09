@@ -17,7 +17,6 @@ _flags = {}
 _devices = {}
 _interval = {}
 
-
 def push_data(df_name):
     if not _devices[df_name].push_data:
         return
