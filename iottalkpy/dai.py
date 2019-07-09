@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import atexit
 import importlib
 import json
