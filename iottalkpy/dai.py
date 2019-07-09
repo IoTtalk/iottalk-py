@@ -10,8 +10,8 @@ import time
 from threading import Thread
 
 from iottalkpy.dan import (ApplicationNotFoundError, DeviceFeature,
-                     RegistrationError, NoData, log, loop_forever,
-                     register, push, deregister)
+                           RegistrationError, NoData, log, loop_forever,
+                           register, push, deregister)
 
 _flags = {}
 _devices = {}
@@ -161,7 +161,7 @@ def main(app):
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         ida_filename = 'ida'
-    elif len(sys.argv) == 2:
+    elif len(sys.argv) >= 2:
         ida_filename = sys.argv[1]
     app = importlib.import_module(ida_filename)
     main(app)
