@@ -35,7 +35,7 @@ def on_signal(signal, df_list):
         for df_name in df_list:
             if not _flags.get(df_name):
                 _flags[df_name] = True
-                t = Thread(target=push_data, args=(df_name, ))
+                t = Thread(target=push_data, args=(df_name,))
                 t.daemon = True
                 t.start()
     elif 'DISCONNECT' == signal:
