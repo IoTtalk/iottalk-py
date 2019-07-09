@@ -4,6 +4,7 @@ IoTtalk v2 Python SDK
 Current supported module:
 
 - Device Application to Network (DAN)
+- Device Application to IoT device (DAI)
 
 Supported Python version:
 
@@ -20,10 +21,17 @@ Installation
     pip install iottalk-py
 
 
-Usage
+Usage of DAI module
 ----------------------------------------------------------------------
 
-Minimal example
+::
+    python -m iottalkpy.dai /path/to/your/ida.py
+
+
+Usage of DAN module
+----------------------------------------------------------------------
+
+Minimal example:
 
 .. code-block:: python
 
