@@ -1,6 +1,5 @@
 import atexit
 import importlib
-import json
 import re
 import signal
 import sys
@@ -8,8 +7,7 @@ import time
 
 from threading import Thread
 
-from iottalkpy.dan import (ApplicationNotFoundError, DeviceFeature,
-                           RegistrationError, NoData, log, loop_forever,
+from iottalkpy.dan import (DeviceFeature, RegistrationError, NoData, log,
                            register, push, deregister)
 
 _flags = {}
@@ -19,6 +17,7 @@ _interval = {}
 def push_data(df_name):
     if not _devices[df_name].push_data:
         return
+    log.debug('%s:%s', df_name, _flags[df_name])
     while _flags[df_name]:
         _data = _devices[df_name].push_data()
         if not isinstance(_data, NoData) and _data is not NoData:
@@ -85,6 +84,10 @@ def main(app):
                 device_addr = None
 
     register_callback = app.__dict__.get('register_callback')
+    on_register = app.__dict__.get('on_register')
+    on_deregister = app.__dict__.get('on_deregister')
+    on_connect = app.__dict__.get('on_connect')
+    on_disconnect = app.__dict__.get('on_disconnect')
 
     idfs = app.__dict__.get('idf_list', [])
     odfs = app.__dict__.get('odf_list', [])
@@ -133,6 +136,14 @@ def main(app):
         else:
             raise RegistrationError('unknown odf_list, usage: [df_name, ...]')
 
+    def f():
+        global _flags
+        for key in _flags:
+            _flags[key] = False
+        log.info(str(_flags))
+        if on_disconnect:
+            return on_disconnect()
+
     context = register(
         csmapi,
         on_signal=on_signal,
@@ -147,6 +158,10 @@ def main(app):
             'u_name': username,
         },
         register_callback=register_callback,
+        on_register=on_register,
+        on_deregister=on_deregister,
+        on_connect=on_connect,
+        on_disconnect=f
     )
 
     atexit.register(deregister)

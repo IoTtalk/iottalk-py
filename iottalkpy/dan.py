@@ -25,6 +25,7 @@ you can use::
 import json
 import logging
 import queue
+import time
 
 from threading import Lock
 from uuid import UUID, uuid4
@@ -191,10 +192,18 @@ class Client:
 
         else:  # in case of reconnecting, we need to renew all subscriptions
             log.info('Reconnect: %s.', _wrapc(DATA_COLOR, self.context.name))
+            client.publish(
+                self.context.i_chans['ctrl'],
+                json.dumps({'state': 'broken', 'rev': self.context.rev}),
+                retain=True,
+                qos=2
+            )
             for k, topic in self.context.o_chans.items():
                 log.info('Renew subscriptions for %s -> %s',
                          _wrapc(DATA_COLOR, k), _wrapc(DATA_COLOR, topic))
                 client.subscribe(topic, qos=2)
+            # FIXME: online msg may eariler then broken, race condition
+            time.sleep(1)
 
         msg = client.publish(
             self.context.i_chans['ctrl'],
@@ -505,13 +514,6 @@ class Client:
 
         return True
 
-    def loop_forever(self):
-        if not self.context or not self.context.mqtt_client:
-            log.error('please register first')
-            return
-
-        self.context.mqtt_client.loop_forever()
-
 
 
 _default_client = Client()
@@ -527,7 +529,3 @@ def deregister():
 
 def push(idf, data, **kwargs):
     return _default_client.push(idf, data, **kwargs)
-
-
-def loop_forever():
-    _default_client.loop_forever()
