@@ -5,7 +5,7 @@ import signal
 import sys
 import time
 
-from threading import Thread
+from threading import Thread, Event
 
 from iottalkpy.dan import (DeviceFeature, RegistrationError, NoData, log,
                            register, push, deregister)
@@ -54,6 +54,13 @@ def get_df_function_name(df_name):
 def on_data(df_name, data):
     _devices[df_name].on_data(data)
     return True
+
+
+def interrupt_handler(signal, frame):
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, interrupt_handler)
 
 
 def main(app):
@@ -166,10 +173,7 @@ def main(app):
 
     atexit.register(deregister)
 
-    try:
-        signal.pause()
-    except KeyboardInterrupt:
-        pass
+    Event().wait()  # wait for SIGINT
 
 
 if __name__ == '__main__':
