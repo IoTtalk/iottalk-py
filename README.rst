@@ -26,7 +26,7 @@ Usage of DAI module
 
 ::
 
-    python -m iottalkpy.dai /path/to/your/ida.py
+    python -m iottalkpy.dai /path/to/your/ida
 
 
 Usage of DAN module
