@@ -14,6 +14,7 @@ _flags = {}
 _devices = {}
 _interval = {}
 
+
 def push_data(df_name):
     if not _devices[df_name].push_data:
         return
@@ -56,11 +57,9 @@ def on_data(df_name, data):
     return True
 
 
-def interrupt_handler(signal, frame):
+def exit_handler(signal, frame):
+    deregister()
     sys.exit(0)
-
-
-signal.signal(signal.SIGINT, interrupt_handler)
 
 
 def main(app):
@@ -172,6 +171,8 @@ def main(app):
     )
 
     atexit.register(deregister)
+    signal.signal(signal.SIGTERM, exit_handler)
+    signal.signal(signal.SIGINT, exit_handler)
 
     Event().wait()  # wait for SIGINT
 
