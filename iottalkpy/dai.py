@@ -58,8 +58,7 @@ def on_data(df_name, data):
 
 
 def exit_handler(signal, frame):
-    deregister()
-    sys.exit(0)
+    sys.exit(0)  # this will trigger ``atexit`` callbacks
 
 
 def main(app):
