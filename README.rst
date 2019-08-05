@@ -61,6 +61,22 @@ Minimal example:
     client.loop_forever()
 
 
+Developer Notes
+----------------------------------------------------------------------
+
+Release steps
+
+#. Bump version and commit
+
+#. ``git-tag`` the version
+
+#. ``git push --tags``
+
+#. ``python ./setup.py bdist_wheel``
+
+#. ``twine upload ./dist/iottalk_py-<version>-py3-none-any.whl``
+
+
 TODO
 ----------------------------------------------------------------------
 
