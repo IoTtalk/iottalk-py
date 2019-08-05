@@ -24,7 +24,8 @@ Installation
 Usage of DAI module
 ----------------------------------------------------------------------
 
-::
+There is a executable DAI module. User can invoke it via the command line
+interface.::
 
     python -m iottalkpy.dai /path/to/your/ida
 
