@@ -1,5 +1,6 @@
 import atexit
 import importlib
+import logging
 import platform
 import re
 import signal
@@ -8,8 +9,12 @@ import time
 
 from threading import Thread, Event
 
-from iottalkpy.dan import (DeviceFeature, RegistrationError, NoData, log,
-                           register, push, deregister)
+from iottalkpy.color import DAIColor
+from iottalkpy.dan import DeviceFeature, RegistrationError, NoData
+from iottalkpy.dan import register, push, deregister
+
+log = logging.getLogger(DAIColor.wrap(DAIColor.logger, 'DAI'))
+log.setLevel(level=logging.INFO)
 
 _flags = {}
 _devices = {}
@@ -146,7 +151,7 @@ def main(app):
         global _flags
         for key in _flags:
             _flags[key] = False
-        log.info(str(_flags))
+        log.debug('on_disconnect: _flag = %s', str(_flags))
         if on_disconnect:
             return on_disconnect()
 
@@ -174,6 +179,7 @@ def main(app):
     signal.signal(signal.SIGTERM, exit_handler)
     signal.signal(signal.SIGINT, exit_handler)
 
+    log.info('Press Ctrl+C to exit DAI.')
     if platform.system() == 'Windows':
         # workaround for https://bugs.python.org/issue35935
         while True:
