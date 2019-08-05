@@ -1,5 +1,6 @@
 import atexit
 import importlib
+import platform
 import re
 import signal
 import sys
@@ -173,7 +174,12 @@ def main(app):
     signal.signal(signal.SIGTERM, exit_handler)
     signal.signal(signal.SIGINT, exit_handler)
 
-    Event().wait()  # wait for SIGINT
+    if platform.system() == 'Windows':
+        # workaround for https://bugs.python.org/issue35935
+        while True:
+            time.sleep(86400)
+    else:
+        Event().wait()  # wait for SIGINT
 
 
 if __name__ == '__main__':
