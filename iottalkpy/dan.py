@@ -35,22 +35,14 @@ import requests
 from paho.mqtt import client as mqtt
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 
+from iottalkpy.color import DANColor
+
 __all__ = ('NoData', 'Client', 'push', 'register', 'deregistration',
            'loop_forever')
 
-DAN_COLOR = "\033[1;35m"
-DEFAULT_COLOR = "\033[0m"
-DATA_COLOR = "\033[1;33m"
-
-logging.basicConfig(level=logging.INFO)
-log = logging.getLogger("{}DAN{}".format(DAN_COLOR, DEFAULT_COLOR))
-
-
-def _wrapc(color, s):
-    """
-    wrap string with color
-    """
-    return "{}{}{}".format(color, s, DEFAULT_COLOR)
+logging.basicConfig(level=logging.INFO)  # root logger setting
+log = logging.getLogger(DANColor.wrap(DANColor.logger, 'DAN'))
+log.setLevel(level=logging.INFO)
 
 
 class NoData():
@@ -180,18 +172,18 @@ class Client:
 
         if not self._is_reconnect:
             log.info('Successfully connect to %s.',
-                     _wrapc(DATA_COLOR, self.context.url))
+                     DANColor.wrap(DANColor.data, self.context.url))
             log.info('Device ID: %s.',
-                     _wrapc(DATA_COLOR, self.context.app_id))
+                     DANColor.wrap(DANColor.data, self.context.app_id))
             log.info('Device name: %s.',
-                     _wrapc(DATA_COLOR, self.context.name))
+                     DANColor.wrap(DANColor.data, self.context.name))
 
             res, _ = client.subscribe(self.context.o_chans['ctrl'], qos=2)
             if res != MQTT_ERR_SUCCESS:
                 raise Exception('Subscribe to control channel failed')
 
         else:  # in case of reconnecting, we need to renew all subscriptions
-            log.info('Reconnect: %s.', _wrapc(DATA_COLOR, self.context.name))
+            log.info('Reconnect: %s.', DANColor.wrap(DANColor.data, self.context.name))
             client.publish(
                 self.context.i_chans['ctrl'],
                 json.dumps({'state': 'broken', 'rev': self.context.rev}),
@@ -200,7 +192,7 @@ class Client:
             )
             for k, topic in self.context.o_chans.items():
                 log.info('Renew subscriptions for %s -> %s',
-                         _wrapc(DATA_COLOR, k), _wrapc(DATA_COLOR, topic))
+                         DANColor.wrap(DANColor.data, k), DANColor.wrap(DANColor.data, topic))
                 client.subscribe(topic, qos=2)
             # FIXME: online msg may eariler then broken, race condition
             time.sleep(1)
@@ -284,7 +276,7 @@ class Client:
         client.disconnect()
 
     def _on_disconnect(self, client, userdata, rc):
-        log.info('Disconnect to %s.', _wrapc(DATA_COLOR, self.context.url))
+        log.info('Disconnect to %s.', DANColor.wrap(DANColor.data, self.context.url))
         if hasattr(self, '_disconn_lock'):  # we won't have it if reconnecting
             self._disconn_lock.release()
 
@@ -445,6 +437,7 @@ class Client:
 
         :raises: RegistrationError if not registered or deregistration failed
         '''
+        log.debug("Deregisteration triggered")
         ctx = self.context
 
         if not ctx.mqtt_client:
