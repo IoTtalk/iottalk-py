@@ -1,11 +1,12 @@
 import atexit
 import importlib
+import platform
 import re
 import signal
 import sys
 import time
 
-from threading import Thread
+from threading import Thread, Event
 
 from iottalkpy.dan import (DeviceFeature, RegistrationError, NoData, log,
                            register, push, deregister)
@@ -13,6 +14,7 @@ from iottalkpy.dan import (DeviceFeature, RegistrationError, NoData, log,
 _flags = {}
 _devices = {}
 _interval = {}
+
 
 def push_data(df_name):
     if not _devices[df_name].push_data:
@@ -54,6 +56,10 @@ def get_df_function_name(df_name):
 def on_data(df_name, data):
     _devices[df_name].on_data(data)
     return True
+
+
+def exit_handler(signal, frame):
+    sys.exit(0)  # this will trigger ``atexit`` callbacks
 
 
 def main(app):
@@ -165,11 +171,15 @@ def main(app):
     )
 
     atexit.register(deregister)
+    signal.signal(signal.SIGTERM, exit_handler)
+    signal.signal(signal.SIGINT, exit_handler)
 
-    try:
-        signal.pause()
-    except KeyboardInterrupt:
-        pass
+    if platform.system() == 'Windows':
+        # workaround for https://bugs.python.org/issue35935
+        while True:
+            time.sleep(86400)
+    else:
+        Event().wait()  # wait for SIGINT
 
 
 if __name__ == '__main__':
