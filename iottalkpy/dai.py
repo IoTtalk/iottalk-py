@@ -105,6 +105,9 @@ def main(app):
 
     username = app.__dict__.get('username')
 
+    extra_setup_webpage = app.__dict__.get('extra_setup_webpage', '')
+    device_webpage = app.__dict__.get('device_webpage', '')
+
     _push_interval = app.__dict__.get('push_interval', 1)
     _interval = app.__dict__.get('interval', {})
 
@@ -167,6 +170,8 @@ def main(app):
         profile={
             'model': device_model,
             'u_name': username,
+            'extra_setup_webpage': extra_setup_webpage,
+            'device_webpage': device_webpage,
         },
         register_callback=register_callback,
         on_register=on_register,
