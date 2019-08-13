@@ -8,6 +8,7 @@ import sys
 import time
 
 from threading import Thread, Event
+from uuid import UUID
 
 from iottalkpy.color import DAIColor
 from iottalkpy.dan import DeviceFeature, RegistrationError, NoData
@@ -67,6 +68,34 @@ def exit_handler(signal, frame):
     sys.exit(0)  # this will trigger ``atexit`` callbacks
 
 
+def _get_device_addr(app) -> str or None:
+    addr = app.__dict__.get('device_addr', None)
+    if addr is None:
+        return
+    if isinstance(addr, UUID):
+        return str(addr)
+
+    try:
+        UUID(addr)
+    except ValueError:
+        try:
+            addr = str(UUID(int=int(addr, 16)))
+        except ValueError:
+            log.warning('Invalid device_addr. Change device_addr to None.')
+            addr = None
+
+    return addr
+
+
+def _get_persistent_binding(app, device_addr) -> bool:
+    x = app.__dict__.get('persistent_binding', False)
+    if x and device_addr is None:
+            msg = ('In case of `persistent_binding` set to `True`, '
+                   'the `device_addr` should be set and fixed.')
+            raise ValueError(msg)
+    return x
+
+
 def main(app):
     global _devices, _interval
     csmapi = app.__dict__.get('api_url')
@@ -82,18 +111,10 @@ def main(app):
     if device_model is None:
         raise RegistrationError('device_model not given.')
 
-    from uuid import UUID
-    device_addr = app.__dict__.get('device_addr')
-    if device_addr:
-        try:
-            UUID(device_addr)
-        except ValueError:
-            try:
-                device_addr = str(UUID(int=int(device_addr, 16)))
-            except ValueError:
-                print('Invalid device_addr. Change device_addr to None.')
-                device_addr = None
+    device_addr = _get_device_addr(app)
+    persistent_binding = _get_persistent_binding(app, device_addr)
 
+    # callbacks
     register_callback = app.__dict__.get('register_callback')
     on_register = app.__dict__.get('on_register')
     on_deregister = app.__dict__.get('on_deregister')
@@ -180,7 +201,8 @@ def main(app):
         on_disconnect=f
     )
 
-    atexit.register(deregister)
+    if not persistent_binding:
+        atexit.register(deregister)
     signal.signal(signal.SIGTERM, exit_handler)
     signal.signal(signal.SIGINT, exit_handler)
 
