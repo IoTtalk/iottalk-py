@@ -37,8 +37,7 @@ from paho.mqtt.client import MQTT_ERR_SUCCESS
 
 from iottalkpy.color import DANColor
 
-__all__ = ('NoData', 'Client', 'push', 'register', 'deregistration',
-           'loop_forever')
+__all__ = ('NoData', 'Client', 'push', 'register', 'deregister')
 
 logging.basicConfig(level=logging.INFO)  # root logger setting
 log = logging.getLogger(DANColor.wrap(DANColor.logger, 'DAN'))
