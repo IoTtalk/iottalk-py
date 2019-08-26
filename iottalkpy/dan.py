@@ -402,7 +402,7 @@ class Client:
 
         ctx.mqtt_client.will_set(
             self.context.i_chans['ctrl'],
-            json.dumps({'state': 'deregister', 'rev': rev}),
+            json.dumps({'state': 'offline', 'rev': rev}),
             retain=True,
         )
         ctx.mqtt_client.connect(
