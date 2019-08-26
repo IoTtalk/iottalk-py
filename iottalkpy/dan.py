@@ -186,7 +186,7 @@ class Client:
             log.info('Reconnect: %s.', DANColor.wrap(DANColor.data, self.context.name))
             client.publish(
                 self.context.i_chans['ctrl'],
-                json.dumps({'state': 'broken', 'rev': self.context.rev}),
+                json.dumps({'state': 'offline', 'rev': self.context.rev}),
                 retain=True,
                 qos=2
             )
@@ -194,7 +194,7 @@ class Client:
                 log.info('Renew subscriptions for %s -> %s',
                          DANColor.wrap(DANColor.data, k), DANColor.wrap(DANColor.data, topic))
                 client.subscribe(topic, qos=2)
-            # FIXME: online msg may eariler then broken, race condition
+            # FIXME: online msg may eariler then offline, race condition
             time.sleep(1)
 
         msg = client.publish(
@@ -403,7 +403,7 @@ class Client:
 
         ctx.mqtt_client.will_set(
             self.context.i_chans['ctrl'],
-            json.dumps({'state': 'broken', 'rev': rev}),
+            json.dumps({'state': 'deregister', 'rev': rev}),
             retain=True,
         )
         ctx.mqtt_client.connect(
