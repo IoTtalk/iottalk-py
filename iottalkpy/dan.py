@@ -507,6 +507,8 @@ class Client:
 
         return True
 
+    def loop_forever(self):
+        return self.context.mqtt_client.loop_forever()
 
 
 _default_client = Client()
@@ -522,3 +524,7 @@ def deregister():
 
 def push(idf, data, **kwargs):
     return _default_client.push(idf, data, **kwargs)
+
+
+def loop_forever():
+    return _default_client.loop_forever()
