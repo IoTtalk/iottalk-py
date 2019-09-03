@@ -453,7 +453,7 @@ class Client:
             json.dumps({'state': 'offline', 'rev': ctx.rev}),
             retain=True,
             qos=2,
-        )
+        ).wait_for_publish()
 
         try:
             response = requests.delete(
