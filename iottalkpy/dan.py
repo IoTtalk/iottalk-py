@@ -260,6 +260,8 @@ class Client:
                 res_message['state'] = 'error'
                 res_message['reason'] = handling_result[1]
 
+            # FIXME: current v2 server implementation will ignore this message
+            #        We might fix this in v3
             self.context.mqtt_client.publish(
                 self.context.i_chans['ctrl'],
                 json.dumps(res_message),
