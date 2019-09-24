@@ -194,7 +194,7 @@ class Client:
                 log.info('Renew subscriptions for %s -> %s',
                          DANColor.wrap(DANColor.data, k), DANColor.wrap(DANColor.data, topic))
                 client.subscribe(topic, qos=2)
-            # FIXME: online msg may eariler then offline, race condition
+            # FIXME: online msg may reach eariler then offline, race condition
             time.sleep(1)
 
         msg = client.publish(
