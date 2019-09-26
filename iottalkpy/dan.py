@@ -387,8 +387,7 @@ class Client:
             )
 
             if response.status_code != 200:
-                reason = response.json()['reason']
-                raise RegistrationError(reason)
+                raise RegistrationError(response.json()['reason'])
         except requests.exceptions.ConnectionError:
             raise RegistrationError('ConnectionError')
         except (KeyError, json.JSONDecodeError):
@@ -470,8 +469,7 @@ class Client:
             )
 
             if response.status_code != 200:
-                reason = response.json()['reason']
-                raise RegistrationError(reason)
+                raise RegistrationError(response.json()['reason'])
         except requests.exceptions.ConnectionError:
             raise RegistrationError('ConnectionError')
         except (KeyError, json.JSONDecodeError):
