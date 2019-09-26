@@ -387,8 +387,10 @@ class Client:
             )
 
             if response.status_code != 200:
-                raise RegistrationError(response.json()['reason'])
-        except requests.exceptions.ConnectionError:
+                reason = response.json()['reason']
+                raise RegistrationError(reason)
+        except (requests.exceptions.ConnectionError, KeyError,
+                json.JSONDecodeError) as e:
             raise RegistrationError('ConnectionError')
 
         metadata = response.json()
@@ -467,8 +469,10 @@ class Client:
             )
 
             if response.status_code != 200:
-                raise RegistrationError(response.json()['reason'])
-        except requests.exceptions.ConnectionError:
+                reason = response.json()['reason']
+                raise RegistrationError(reason)
+        except (requests.exceptions.ConnectionError, KeyError,
+                json.JSONDecodeError):
             raise RegistrationError('ConnectionError')
 
         self._disconn_lock.acquire()  # wait for disconnect finished
