@@ -37,7 +37,7 @@ from paho.mqtt.client import MQTT_ERR_SUCCESS
 
 from iottalkpy.color import DANColor
 
-__all__ = ('NoData', 'Client', 'push', 'register', 'deregistration',
+__all__ = ('NoData', 'Client', 'push', 'register', 'deregister',
            'loop_forever')
 
 logging.basicConfig(level=logging.INFO)  # root logger setting
@@ -186,7 +186,7 @@ class Client:
             log.info('Reconnect: %s.', DANColor.wrap(DANColor.data, self.context.name))
             client.publish(
                 self.context.i_chans['ctrl'],
-                json.dumps({'state': 'broken', 'rev': self.context.rev}),
+                json.dumps({'state': 'offline', 'rev': self.context.rev}),
                 retain=True,
                 qos=2
             )
@@ -194,7 +194,7 @@ class Client:
                 log.info('Renew subscriptions for %s -> %s',
                          DANColor.wrap(DANColor.data, k), DANColor.wrap(DANColor.data, topic))
                 client.subscribe(topic, qos=2)
-            # FIXME: online msg may eariler then broken, race condition
+            # FIXME: online msg may reach eariler then offline, race condition
             time.sleep(1)
 
         msg = client.publish(
@@ -260,6 +260,8 @@ class Client:
                 res_message['state'] = 'error'
                 res_message['reason'] = handling_result[1]
 
+            # FIXME: current v2 server implementation will ignore this message
+            #        We might fix this in v3
             self.context.mqtt_client.publish(
                 self.context.i_chans['ctrl'],
                 json.dumps(res_message),
@@ -403,7 +405,7 @@ class Client:
 
         ctx.mqtt_client.will_set(
             self.context.i_chans['ctrl'],
-            json.dumps({'state': 'broken', 'rev': rev}),
+            json.dumps({'state': 'offline', 'rev': rev}),
             retain=True,
         )
         ctx.mqtt_client.connect(
@@ -453,7 +455,7 @@ class Client:
             json.dumps({'state': 'offline', 'rev': ctx.rev}),
             retain=True,
             qos=2,
-        )
+        ).wait_for_publish()
 
         try:
             response = requests.delete(
