@@ -390,6 +390,8 @@ class Client:
                 raise RegistrationError(response.json()['reason'])
         except requests.exceptions.ConnectionError:
             raise RegistrationError('ConnectionError')
+        except (KeyError, json.JSONDecodeError):
+            raise RegistrationError('Invalid response from server')
 
         metadata = response.json()
         ctx.name = metadata['name']
@@ -470,6 +472,8 @@ class Client:
                 raise RegistrationError(response.json()['reason'])
         except requests.exceptions.ConnectionError:
             raise RegistrationError('ConnectionError')
+        except (KeyError, json.JSONDecodeError):
+            raise RegistrationError('Invalid response from server')
 
         self._disconn_lock.acquire()  # wait for disconnect finished
         del self._disconn_lock
