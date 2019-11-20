@@ -1,5 +1,6 @@
 import atexit
 import importlib
+import importlib.util
 import logging
 import platform
 import re
@@ -215,10 +216,20 @@ def main(app):
         Event().wait()  # wait for SIGINT
 
 
+def load_module(fname):
+    if ida_filename.endswith('.py'):
+        spec = importlib.util.spec_from_file_location("ida", fname)
+        ida = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(ida)
+    else:
+        ida = importlib.import_module(ida_filename)
+
+    return ida
+
+
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        ida_filename = 'ida'
-    elif len(sys.argv) >= 2:
+    ida_filename = 'ida'
+    if len(sys.argv) >= 2:
         ida_filename = sys.argv[1]
-    app = importlib.import_module(ida_filename)
-    main(app)
+
+    main(load_module(ida_filename))
