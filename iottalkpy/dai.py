@@ -232,4 +232,4 @@ def load_module(fname):
 
 
 if __name__ == '__main__':
-    main(load_module(sys.argv[1] if sys.argv else 'ida'))
+    main(load_module(sys.argv[1] if len(sys.argv) > 1 else 'ida'))
