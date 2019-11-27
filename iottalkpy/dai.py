@@ -68,7 +68,10 @@ def exit_handler(signal, frame):
     sys.exit(0)  # this will trigger ``atexit`` callbacks
 
 
-def _get_device_addr(app) -> str or None:
+def _get_device_addr(app):
+    """
+    :return: ``str`` or ``None``
+    """
     addr = app.__dict__.get('device_addr', None)
     if addr is None:
         return
@@ -87,7 +90,10 @@ def _get_device_addr(app) -> str or None:
     return addr
 
 
-def _get_persistent_binding(app, device_addr) -> bool:
+def _get_persistent_binding(app, device_addr):
+    """
+    :return: bool
+    """
     x = app.__dict__.get('persistent_binding', False)
     if x and device_addr is None:
             msg = ('In case of `persistent_binding` set to `True`, '
