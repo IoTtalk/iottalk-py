@@ -37,7 +37,7 @@ from paho.mqtt.client import MQTT_ERR_SUCCESS
 from iottalkpy.color import DANColor
 
 # python2 compatibility
-try
+try:
     import queue
 except ImportError:
     import Queue as queue
