@@ -24,7 +24,6 @@ you can use::
 '''
 import json
 import logging
-import queue
 import time
 
 from threading import Lock
@@ -36,6 +35,13 @@ from paho.mqtt import client as mqtt
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 
 from iottalkpy.color import DANColor
+
+# python2 compatibility
+try
+    import queue
+except ImportError:
+    import Queue as queue
+
 
 __all__ = ('NoData', 'Client', 'push', 'register', 'deregister',
            'loop_forever')
