@@ -238,6 +238,8 @@ def load_module(fname):
             # mapping ``/my/path/ida`` to ``my.path.ida``
             m = '.'.join(os.path.normpath(fname).split(os.path.sep))
             ida = importlib.import_module(m)
+
+        return ida
     else:  # in case of python 2, only single file is supported
         if os.path.isdir(fname):
             raise RuntimeError(
@@ -252,8 +254,6 @@ def load_module(fname):
             exec(f, d)
 
         return App(d)
-
-    return ida
 
 
 if __name__ == '__main__':
