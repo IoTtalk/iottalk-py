@@ -21,7 +21,7 @@ _flags = {}
 _devices = {}
 _interval = {}
 
-try:
+try:  # Python 3 only
     import importlib
     import importlib.util
 except:
