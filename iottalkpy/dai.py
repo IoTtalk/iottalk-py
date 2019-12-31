@@ -224,15 +224,30 @@ def main(app):
 
 
 def load_module(fname):
-    if fname.endswith('.py'):
-        # https://stackoverflow.com/a/67692
-        spec = importlib.util.spec_from_file_location("ida", fname)
-        ida = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(ida)
-    else:
-        # mapping ``/my/path/ida`` to ``my.path.ida``
-        m = '.'.join(os.path.normpath(fname).split(os.path.sep))
-        ida = importlib.import_module(m)
+    if sys.version_info.major > 2:  # python 3+
+        if fname.endswith('.py'):
+            # https://stackoverflow.com/a/67692
+            spec = importlib.util.spec_from_file_location('ida', fname)
+            ida = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(ida)
+        else:
+            # mapping ``/my/path/ida`` to ``my.path.ida``
+            m = '.'.join(os.path.normpath(fname).split(os.path.sep))
+            ida = importlib.import_module(m)
+    else:  # in case of python 2, only single file is supported
+        if os.path.isdir(fname):
+            raise RuntimeError(
+                "Only single file loading is supported in Python 2")
+
+        class App(object):
+            def __init__(self, d):
+                self.__dict__ = d
+
+        d = {}
+        with open(fname) as f:
+            exec(f, d)
+
+        return App(d)
 
     return ida
 
