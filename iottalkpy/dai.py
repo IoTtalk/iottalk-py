@@ -1,6 +1,4 @@
 import atexit
-import importlib
-import importlib.util
 import logging
 import os.path
 import platform
@@ -22,6 +20,12 @@ log.setLevel(level=logging.INFO)
 _flags = {}
 _devices = {}
 _interval = {}
+
+try:
+    import importlib
+    import importlib.util
+except:
+    pass
 
 
 def push_data(df_name):
@@ -215,7 +219,7 @@ def main(app):
     signal.signal(signal.SIGINT, exit_handler)
 
     log.info('Press Ctrl+C to exit DAI.')
-    if platform.system() == 'Windows':
+    if platform.system() == 'Windows' or sys.version_info.major == 2:
         # workaround for https://bugs.python.org/issue35935
         while True:
             time.sleep(86400)
