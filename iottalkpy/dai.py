@@ -13,6 +13,7 @@ from uuid import UUID
 from iottalkpy.color import DAIColor
 from iottalkpy.dan import DeviceFeature, RegistrationError, NoData
 from iottalkpy.dan import register, push, deregister
+from iottalkpy.utils import cd
 
 log = logging.getLogger(DAIColor.wrap(DAIColor.logger, 'DAI'))
 log.setLevel(level=logging.INFO)
@@ -235,9 +236,18 @@ def load_module(fname):
             ida = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(ida)
         else:
-            # mapping ``/my/path/ida`` to ``my.path.ida``
-            m = '.'.join(os.path.normpath(fname).split(os.path.sep))
-            ida = importlib.import_module(m)
+            fname = os.path.normpath(fname)
+            if fname.startswith('/'):
+                m = fname[1:]
+
+            # mapping ``my/path/ida`` to ``my.path.ida``
+            m = '.'.join(m.split(os.path.sep))
+
+            if fname.startswith('/'):
+                with cd('/'):
+                    ida = importlib.import_module(m)
+            else:
+                ida = importlib.import_module(m)
 
         return ida
     else:  # in case of python 2, only single file is supported
