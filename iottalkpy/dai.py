@@ -237,8 +237,7 @@ def load_module(fname):
             spec.loader.exec_module(ida)
         else:
             fname = os.path.normpath(fname)
-            if fname.startswith('/'):
-                m = fname[1:]
+            m = fname[1:] if fname.startswith('/') else fname
 
             # mapping ``my/path/ida`` to ``my.path.ida``
             m = '.'.join(m.split(os.path.sep))
