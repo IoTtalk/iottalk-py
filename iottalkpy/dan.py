@@ -1,7 +1,7 @@
 '''
-This module wraps the mqtt API into IoTtalk client API
+This module wraps the mqtt API into IoTtalk client API.
 
-If your process contain sigle Device,
+If your process contain single Device,
 you can use::
 
     from iottalkpy import dan
@@ -50,11 +50,12 @@ class NoData():
 
 
 class DeviceFeature(object):
-    def __init__(self, df_name, df_type=None):
-        self._df_name = df_name
-        self._df_type = df_type if df_type is not None else [None]
-        self._push_data = None
+    def __init__(self, df_name, df_type, param_type=None):
+        self.df_name = df_name
+        self.df_type = df_type  # idf / odf
+        self.param_type = param_type if param_type is not None else [None]
         self._on_data = None
+        self._push_data = None
 
     @property
     def df_name(self):
@@ -70,7 +71,18 @@ class DeviceFeature(object):
 
     @df_type.setter
     def df_type(self, value):
+        if value not in ['idf', 'odf']:
+            msg = '<{df_name}>: df_type must be "idf" or "odf"'.format(df_name=self.df_name)
+            raise RegistrationError(msg)
         self._df_type = value
+
+    @property
+    def param_type(self):
+        return self._param_type
+
+    @param_type.setter
+    def param_type(self, value):
+        self._param_type = value
 
     @property
     def on_data(self):
@@ -95,7 +107,7 @@ class DeviceFeature(object):
         self._push_data = value
 
     def profile(self):
-        return (self.df_name, self.df_type)
+        return (self.df_name, self.param_type)
 
 
 class ChannelPool(dict):
