@@ -6,58 +6,55 @@ import pytest
 
 from iottalkpy.dai import load_module
 
-
-def fname():
-    fp_dir1 = tempfile.mkdtemp()
-    fp1 = tempfile.NamedTemporaryFile(suffix='.py', dir=fp_dir1, delete=False)
-    fp1.write(b'''
-api_url = 'http://localhost:9992'
-device_module = 'Dummy_Device'
-idf_list = ['Dummy_Sensor']
-push_interval = 10
-interval = {
-    'Dummy_Sensor': 1,
-}
-''')
-    fp1.close()
-
-    a = fp1.name
-    b = os.path.splitext(fp1.name)[0]
-
-    fp_dir2 = tempfile.mkdtemp(dir='/home/ken/iottalk-py/tests/')
-    fp2 = tempfile.NamedTemporaryFile(suffix='.py', dir=fp_dir2, delete=False)
-    fp2.write(b'''
-api_url = 'http://localhost:9992'
-device_module = 'Dummy_Device'
-idf_list = ['Dummy_Sensor']
-push_interval = 10
-interval = {
-    'Dummy_Sensor': 1,
-}
-''')
-    fp2.close()
-
-    fp_dir2_name = os.path.basename(fp_dir2)
-    c = os.path.basename(fp2.name)
-    c = os.path.splitext(c)[0]
-    c = os.path.join(fp_dir2_name, c)
-
-    d = os.path.basename(fp2.name)
-    d = os.path.join(fp_dir2_name, d)
-
-    yield a
-    yield b
-    yield c
-    yield d
+dai_path_cases = [
+    ('abs', 'py'),
+    ('abs', 'no-py'),
+    ('rel', 'py'),
+    ('rel', 'no-py')
+]
 
 
-@pytest.mark.parametrize("fname", fname())
-def test_load_module(fname):
-    m = load_module(fname)
+@pytest.fixture
+def dai_path(request):
+    dir_ = tempfile.mkdtemp(prefix='iottalkpy')
+    dir_ = os.path.abspath(dir_)
+
+    with tempfile.NamedTemporaryFile(suffix='.py', dir=dir_, delete=False) as f:
+        f.write(b'\n'.join([
+            b"api_url = 'http://localhost:9992'",
+            b"device_module = 'Dummy_Device'",
+            b"idf_list = ['Dummy_Sensor']",
+            b"push_interval = 10",
+            b"interval = {",
+            b"    'Dummy_Sensor': 1,",
+            b"}",
+        ]))
+
+    if request.param == ('abs', 'py'):
+        yield f.name
+    elif request.param == ('abs', 'no-py'):
+        yield os.path.splitext(f.name)[0]
+    elif request.param[0] == 'rel':
+        h, t = os.path.split(f.name)
+        os.chdir(h)
+
+        if request.param == ('rel', 'py'):
+            yield t
+        elif request.param == ('rel', 'no-py'):
+            yield os.path.splitext(t)[0]
+    else:
+        raise ValueError('unknown dai path type: {}',format(request.param))
+
+    shutil.rmtree(dir_)
+
+
+@pytest.mark.parametrize('dai_path', dai_path_cases, indirect=True)
+def test_load_module(dai_path):
+    m = load_module(dai_path)
     assert m
     assert m.__dict__
     assert m.__dict__['api_url'] == 'http://localhost:9992'
     assert m.__dict__['device_module'] == 'Dummy_Device'
     assert m.__dict__['idf_list'] == ['Dummy_Sensor']
     assert m.__dict__['push_interval'] == 10
-    assert m.__dict__['interval'] == {'Dummy_Sensor': 1, }
+    assert m.__dict__['interval'] == {'Dummy_Sensor': 1}
