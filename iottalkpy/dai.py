@@ -242,11 +242,16 @@ def load_module(fname):
             # mapping ``my/path/ida`` to ``my.path.ida``
             m = '.'.join(m.split(os.path.sep))
 
+            # well, seems we need to hack sys.path
             if fname.startswith('/'):
                 with cd('/'):
-                    ida = importlib.import_module(m)
+                    sys.path.append(os.getcwd())
+                    ida = importlib.import_module(m, )
             else:
+                sys.path.append(os.getcwd())
                 ida = importlib.import_module(m)
+
+            sys.path.pop()
 
         return ida
     else:  # in case of python 2, only single file is supported
