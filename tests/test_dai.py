@@ -58,3 +58,11 @@ def test_load_module(dai_path):
     assert m.__dict__['idf_list'] == ['Dummy_Sensor']
     assert m.__dict__['push_interval'] == 10
     assert m.__dict__['interval'] == {'Dummy_Sensor': 1}
+
+   
+def test_load_module_nonexists():   
+    with pytest.raises(OSError):
+        assert load_module('/tmp/nondir/nonfile')
+        assert load_module('nondir/nonfile')
+        assert load_module('/tmp/nondir/nonfile.py')
+        assert load_module('nondir/nonfile.py')
