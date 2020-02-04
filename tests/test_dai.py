@@ -16,26 +16,31 @@ dai_path_cases = [
 
 @pytest.fixture
 def dai_path(request):
-    dir_ = tempfile.mkdtemp(prefix='iottalkpy')
-    dir_ = os.path.abspath(dir_)
+    fp, path = tempfile.mkstemp(suffix='.py', prefix='iottalkpy')
 
-    with tempfile.NamedTemporaryFile(suffix='.py', dir=dir_, delete=False) as f:
-        f.write(b'\n'.join([
-            b"api_url = 'http://localhost:9992'",
-            b"device_module = 'Dummy_Device'",
-            b"idf_list = ['Dummy_Sensor']",
-            b"push_interval = 10",
-            b"interval = {",
-            b"    'Dummy_Sensor': 1,",
-            b"}",
-        ]))
+    str_ = [
+        "api_url = 'http://localhost:9992'",
+        "device_module = 'Dummy_Device'",
+        "idf_list = ['Dummy_Sensor']",
+        "push_interval = 10",
+        "interval = {",
+        "    'Dummy_Sensor': 1",
+        "}",
+    ]
+
+    f = open(path, "w")
+
+    for line in str_:
+        f.write(line)
+        f.write('\n')
+    f.close()
 
     if request.param == ('abs', 'py'):
-        yield f.name
+        yield path
     elif request.param == ('abs', 'no-py'):
-        yield os.path.splitext(f.name)[0]
+        yield os.path.splitext(path)[0]
     elif request.param[0] == 'rel':
-        h, t = os.path.split(f.name)
+        h, t = os.path.split(path)
         os.chdir(h)
 
         if request.param == ('rel', 'py'):
@@ -45,18 +50,18 @@ def dai_path(request):
     else:
         raise ValueError('unknown dai path type: {}',format(request.param))
 
-    shutil.rmtree(dir_)
+    os.unlink(path)
 
 
 @pytest.fixture
-def dai_path_nonexists(request):
-    if request.param == ('abs', 'py'):
+def dai_path_nonmodule(request):
+    if request.param == ('abs', 'no-py'):
         yield '/tmp/nondir/nonfile'
-    elif request.param == ('abs', 'no-py'):
-        yield 'nondir/nonfile'
-    elif request.param == ('rel', 'py'):
-        yield '/tmp/nondir/nonfile.py'
     elif request.param == ('rel', 'no-py'):
+        yield 'nondir/nonfile'
+    elif request.param == ('abs', 'py'):
+        yield '/tmp/nondir/nonfile.py'
+    elif request.param == ('rel', 'py'):
         yield 'nondir/nonfile.py'
 
 
@@ -72,7 +77,7 @@ def test_load_module(dai_path):
     assert m.__dict__['interval'] == {'Dummy_Sensor': 1}
 
 
-@pytest.mark.parametrize('dai_path_nonexists', dai_path_cases, indirect=True)
-def test_load_module_nonexists(dai_path_nonexists):   
-    with pytest.raises(OSError):
-        assert load_module(dai_path_nonexists)
+@pytest.mark.parametrize('dai_path_nonmodule', dai_path_cases, indirect=True)
+def test_load_module_nonmodule(dai_path_nonmodule):
+    with pytest.raises(Exception):
+        load_module(dai_path_nonmodule)
