@@ -48,6 +48,18 @@ def dai_path(request):
     shutil.rmtree(dir_)
 
 
+@pytest.fixture
+def dai_path_nonexists(request):
+    if request.param == ('abs', 'py'):
+        yield '/tmp/nondir/nonfile'
+    elif request.param == ('abs', 'no-py'):
+        yield 'nondir/nonfile'
+    elif request.param == ('rel', 'py'):
+        yield '/tmp/nondir/nonfile.py'
+    elif request.param == ('rel', 'no-py'):
+        yield 'nondir/nonfile.py'
+
+
 @pytest.mark.parametrize('dai_path', dai_path_cases, indirect=True)
 def test_load_module(dai_path):
     m = load_module(dai_path)
@@ -59,10 +71,8 @@ def test_load_module(dai_path):
     assert m.__dict__['push_interval'] == 10
     assert m.__dict__['interval'] == {'Dummy_Sensor': 1}
 
-   
-def test_load_module_nonexists():   
+
+@pytest.mark.parametrize('dai_path_nonexists', dai_path_cases, indirect=True)
+def test_load_module_nonexists(dai_path_nonexists):   
     with pytest.raises(OSError):
-        assert load_module('/tmp/nondir/nonfile')
-        assert load_module('nondir/nonfile')
-        assert load_module('/tmp/nondir/nonfile.py')
-        assert load_module('nondir/nonfile.py')
+        assert load_module(dai_path_nonexists)
