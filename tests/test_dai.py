@@ -75,4 +75,4 @@ def test_load_module(dai_path):
 @pytest.mark.parametrize('dai_path_nonexists', dai_path_cases, indirect=True)
 def test_load_module_nonexists(dai_path_nonexists):   
     with pytest.raises(OSError):
-        assert load_module(dai_path_nonexists)
+        load_module(dai_path_nonexists)
