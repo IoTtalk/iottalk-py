@@ -1,5 +1,4 @@
 import os
-import shutil
 import tempfile
 
 import pytest
@@ -54,7 +53,7 @@ def dai_path(request):
 
 
 @pytest.fixture
-def dai_path_nonmodule(request):
+def dai_path_nonexists(request):
     if request.param == ('abs', 'no-py'):
         yield '/tmp/nondir/nonfile'
     elif request.param == ('rel', 'no-py'):
@@ -77,7 +76,7 @@ def test_load_module(dai_path):
     assert m.__dict__['interval'] == {'Dummy_Sensor': 1}
 
 
-@pytest.mark.parametrize('dai_path_nonmodule', dai_path_cases, indirect=True)
-def test_load_module_nonmodule(dai_path_nonmodule):
+@pytest.mark.parametrize('dai_path_nonexists', dai_path_cases, indirect=True)
+def test_load_module_nonexists(dai_path_nonexists):
     with pytest.raises(Exception):
-        load_module(dai_path_nonmodule)
+        load_module(dai_path_nonexists)
