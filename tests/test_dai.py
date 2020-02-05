@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 
 import pytest
@@ -15,31 +16,26 @@ dai_path_cases = [
 
 @pytest.fixture
 def dai_path(request):
-    fp, path = tempfile.mkstemp(suffix='.py', prefix='iottalkpy')
+    dir_ = tempfile.mkdtemp(prefix='iottalkpy')
+    dir_ = os.path.abspath(dir_)
 
-    str_ = [
-        "api_url = 'http://localhost:9992'",
-        "device_module = 'Dummy_Device'",
-        "idf_list = ['Dummy_Sensor']",
-        "push_interval = 10",
-        "interval = {",
-        "    'Dummy_Sensor': 1",
-        "}",
-    ]
-
-    f = open(path, "w")
-
-    for line in str_:
-        f.write(line)
-        f.write('\n')
-    f.close()
+    with tempfile.NamedTemporaryFile(suffix='.py', dir=dir_, delete=False) as f:
+        f.write(b'\n'.join([
+            b"api_url = 'http://localhost:9992'",
+            b"device_module = 'Dummy_Device'",
+            b"idf_list = ['Dummy_Sensor']",
+            b"push_interval = 10",
+            b"interval = {",
+            b"    'Dummy_Sensor': 1,",
+            b"}",
+        ]))
 
     if request.param == ('abs', 'py'):
-        yield path
+        yield f.name
     elif request.param == ('abs', 'no-py'):
-        yield os.path.splitext(path)[0]
+        yield os.path.splitext(f.name)[0]
     elif request.param[0] == 'rel':
-        h, t = os.path.split(path)
+        h, t = os.path.split(f.name)
         os.chdir(h)
 
         if request.param == ('rel', 'py'):
@@ -49,7 +45,7 @@ def dai_path(request):
     else:
         raise ValueError('unknown dai path type: {}',format(request.param))
 
-    os.unlink(path)
+    shutil.rmtree(dir_)
 
 
 @pytest.fixture
