@@ -232,7 +232,7 @@ def load_module(fname):
     if sys.version_info.major > 2:  # python 3+
         if fname.endswith('.py'):
             # https://stackoverflow.com/a/67692
-            if sys.version_info > (3, 4):
+            if sys.version_info >= (3, 5):
                 spec = importlib.util.spec_from_file_location('ida', fname)
                 ida = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(ida)
