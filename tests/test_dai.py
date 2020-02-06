@@ -36,12 +36,15 @@ def dai_path(request):
         yield os.path.splitext(f.name)[0]
     elif request.param[0] == 'rel':
         h, t = os.path.split(f.name)
+        cwd = os.getcwd()
         os.chdir(h)
 
         if request.param == ('rel', 'py'):
             yield t
         elif request.param == ('rel', 'no-py'):
             yield os.path.splitext(t)[0]
+
+        os.chdir(cwd)
     else:
         raise ValueError('unknown dai path type: {}',format(request.param))
 
