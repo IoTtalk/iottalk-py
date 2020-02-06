@@ -14,8 +14,7 @@ from threading import Thread, Event
 from uuid import UUID
 
 from iottalkpy.color import DAIColor
-from iottalkpy.dan import DeviceFeature, RegistrationError, NoData
-from iottalkpy.dan import register, push, deregister
+from iottalkpy.dan import Client, DeviceFeature, RegistrationError, NoData
 
 log = logging.getLogger(DAIColor.wrap(DAIColor.logger, 'DAI'))
 log.setLevel(level=logging.INFO)
@@ -27,8 +26,9 @@ class DAI(Process):
                  extra_setup_webpage='', device_webpage='',
                  register_callback=None, on_register=None, on_deregister=None,
                  on_connect=None, on_disconnect=None,
-                 push_interval=1, interval={}, device_features={}):
+                 push_interval=1, interval={}, device_features={}, block=True):
         super(Process, self).__init__()
+        self.dan = Client()
         self.api_url = api_url
         self.device_model = device_model
         self.device_addr = device_addr
@@ -50,6 +50,8 @@ class DAI(Process):
         self.device_features = device_features
         self.flags = {}
 
+        self.block = block
+
     def push_data(self, df_name):
         if not self.device_features[df_name].push_data:
             return
@@ -57,7 +59,7 @@ class DAI(Process):
         while self.flags[df_name]:
             _data = self.device_features[df_name].push_data()
             if not isinstance(_data, NoData) and _data is not NoData:
-                push(df_name, _data)
+                self.dan.push(df_name, _data)
             time.sleep(self.interval[df_name])
 
     def on_signal(self, signal, df_list):
@@ -143,7 +145,7 @@ class DAI(Process):
             if self.on_disconnect:
                 return self.on_disconnect()
 
-        context = register(
+        context = self.dan.register(
             self.api_url,
             on_signal=self.on_signal,
             on_data=self.on_data,
@@ -166,17 +168,19 @@ class DAI(Process):
         )
 
         if not self.persistent_binding:
-            atexit.register(deregister)
-        signal.signal(signal.SIGTERM, self.exit_handler)
-        signal.signal(signal.SIGINT, self.exit_handler)
+            atexit.register(self.dan.deregister)
 
-        log.info('Press Ctrl+C to exit DAI.')
-        if platform.system() == 'Windows':
-            # workaround for https://bugs.python.org/issue35935
-            while True:
-                time.sleep(86400)
-        else:
-            Event().wait()  # wait for SIGINT
+        if self.block:
+            signal.signal(signal.SIGTERM, self.exit_handler)
+            signal.signal(signal.SIGINT, self.exit_handler)
+
+            log.info('Press Ctrl+C to exit DAI.')
+            if platform.system() == 'Windows':
+                # workaround for https://bugs.python.org/issue35935
+                while True:
+                    time.sleep(86400)
+            else:
+                Event().wait()  # wait for SIGINT
 
 
 def load_module(file_name):
