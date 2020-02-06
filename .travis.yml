@@ -7,9 +7,8 @@ python:
   - "3.8"
 install:
   - pip install .
-  - pip install codecov
+  - pip install pytest pytest-cov
 script:
-  - pytest
-  - coverage run test_dai.py
+  - pytest --cov=./
 notifications:
   email: false
