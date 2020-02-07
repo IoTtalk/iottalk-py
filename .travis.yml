@@ -10,7 +10,7 @@ install:
   - pip install codecov
   - pip install pytest pytest-cov
 script:
-  - pytest --cov=iottalkpy/
+  - pytest --cov=./
 after_success:
   - codecov
 notifications:
