@@ -53,7 +53,7 @@ def dai_path(request):
 
         os.chdir(cwd)
     else:
-        raise ValueError('unknown dai path type: {}',format(request.param))
+        raise ValueError('unknown dai path type: {}'.format(request.param))
 
     shutil.rmtree(dir_)
 
