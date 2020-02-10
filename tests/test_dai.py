@@ -9,9 +9,15 @@ from iottalkpy.dai import load_module
 
 dai_path_cases = [
     ('abs', 'py'),
-    ('abs', 'no-py'),
+    pytest.param(('abs', 'no-py'),
+        marks = pytest.mark.skipif(
+            sys.version_info < (3, 4), reason = 'tests only for python2'
+        )),
     ('rel', 'py'),
-    ('rel', 'no-py')
+    pytest.param(('rel', 'no-py'),
+        marks = pytest.mark.skipif(
+            sys.version_info < (3, 4), reason = 'test only for python2'
+        ))
 ]
 
 
@@ -64,24 +70,7 @@ def dai_path_nonexists(request):
         yield 'nondir/nonfile.py'
 
 
-@pytest.mark.parametrize('dai_path',
-    [
-        ('abs', 'py'),
-        ('rel', 'py'),
-        pytest.param(('rel', 'no-py'),
-            marks = pytest.mark.skipif(
-                sys.version_info < (3, 4), reason = 'tests only for python2'
-            )
-        ),
-        pytest.param(('abs', 'no-py'),
-            marks = pytest.mark.skipif(
-                sys.version_info < (3, 4), reason = 'tests only for python2'
-            )
-        )
-    ],
-    indirect=True)
-
-
+@pytest.mark.parametrize('dai_path', dai_path_cases, indirect = True)
 def test_load_module(dai_path):
     m = load_module(dai_path)
     assert m
