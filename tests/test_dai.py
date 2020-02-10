@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 import tempfile
 
 import pytest
@@ -63,7 +64,24 @@ def dai_path_nonexists(request):
         yield 'nondir/nonfile.py'
 
 
-@pytest.mark.parametrize('dai_path', dai_path_cases, indirect=True)
+@pytest.mark.parametrize('dai_path',
+    [
+        ('abs', 'py'),
+        ('rel', 'py'),
+        pytest.param(('rel', 'no-py'),
+            marks = pytest.mark.skipif(
+                sys.version_info < (3, 6), reason = 'tests only for python2'
+            )
+        ),
+        pytest.param(('abs', 'no-py'),
+            marks = pytest.mark.skipif(
+                sys.version_info < (3, 6), reason = 'tests only for python2'
+            )
+        )
+    ],
+    indirect=True)
+
+
 def test_load_module(dai_path):
     m = load_module(dai_path)
     assert m
