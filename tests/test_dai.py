@@ -9,15 +9,19 @@ from iottalkpy.dai import load_module
 
 dai_path_cases = [
     ('abs', 'py'),
-    pytest.param(('abs', 'no-py'),
+    pytest.param(
+        ('abs', 'no-py'),
         marks = pytest.mark.skipif(
-            sys.version_info < (3,), reason = 'python2 not support this case'
-        )),
+            sys.version_info.major == 2, reason = 'py2 not support this case'
+        )
+    ),
     ('rel', 'py'),
-    pytest.param(('rel', 'no-py'),
+    pytest.param(
+        ('rel', 'no-py'),
         marks = pytest.mark.skipif(
-            sys.version_info < (3,), reason = 'python2 not support this case'
-        ))
+            sys.version_info.major == 2, reason = 'py2 not support this case'
+        )
+    )
 ]
 
 

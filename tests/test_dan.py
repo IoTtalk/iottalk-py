@@ -1,6 +1,7 @@
 import json
 import pytest
 import requests
+import sys
 
 from threading import Thread, Lock
 from time import sleep
@@ -11,6 +12,7 @@ from paho.mqtt import client as mqtt
 from iottalkpy import dan as iot_dan
 
 
+@pytest.skip('Not test now', allow_module_level=True)
 @pytest.fixture()
 def uuid():
     return str(uuid4())
@@ -53,7 +55,6 @@ def simple_da(dan, base_url):
     dan.deregister()
 
 
-@pytest.mark.skip('server unavailiable')
 def test_register_without_id(base_url, dan):
     def on_data(*args):
         pass
@@ -86,7 +87,6 @@ def test_register_without_id(base_url, dan):
     sleep(1)  # make DA busy
 
 
-@pytest.mark.skip('server unavailiable')
 def test_register_with_id(base_url, uuid, dan):
     def on_data(*args):
         pass
@@ -120,7 +120,6 @@ def test_register_with_id(base_url, uuid, dan):
     sleep(1)  # make DA busy
 
 
-@pytest.mark.skip('server unavailiable')
 def test_register_deregister(base_url, dan):
     def on_data(*args):
         pass
@@ -156,7 +155,6 @@ def test_register_deregister(base_url, dan):
     assert context.mqtt_client is None
 
 
-@pytest.mark.skip('server unavailiable')
 def test_register_profile(base_url, uuid, dan):
     def on_data(*args):
         pass
@@ -190,7 +188,6 @@ def test_register_profile(base_url, uuid, dan):
     sleep(1)  # make DA busy
 
 
-@pytest.mark.skip('server unavailiable')
 def test_mqtt_online_msg(mqtt_client, simple_da, lock, dan):
     topic = simple_da.i_chans['ctrl']
     rev = simple_da.rev
@@ -212,7 +209,6 @@ def test_mqtt_online_msg(mqtt_client, simple_da, lock, dan):
     }
 
 
-@pytest.mark.skip('server unavailiable')
 def test_mqtt_offline_msg(mqtt_client, base_url, lock, dan):
     def on_data(*args):
         pass
@@ -256,12 +252,10 @@ def test_mqtt_offline_msg(mqtt_client, base_url, lock, dan):
     }
 
 
-@pytest.mark.skip('server unavailiable')
 def test_on_online_pub(simple_da):
     assert simple_da.mqtt_client.on_publish is None
 
 
-@pytest.mark.skip('server unavailiable')
 def test_register_without_name(base_url, uuid, dan):
     def on_data(*args):
         pass
@@ -294,7 +288,6 @@ def test_register_without_name(base_url, uuid, dan):
 
 # if the playload is not a dict or list,
 # wrap it into list then encode to json
-@pytest.mark.skip('server unavailiable')
 @pytest.mark.parametrize('payload', [42, "string", None])
 def test_push(dan, simple_da, payload):
     def pub(topic, data, **kwargs):
@@ -313,7 +306,6 @@ def test_push(dan, simple_da, payload):
     simple_da.mqtt_client.publish = orig_pub
 
 
-@pytest.mark.skip('server unavailiable')
 @pytest.mark.parametrize('payload', [
     (-4, 3),
     [3, -4],

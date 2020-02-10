@@ -7,7 +7,6 @@ source = iottalkpy
 exclude_lines =
     pragma: no cover
 
-
     def __repr__
     if self\.debug
 
@@ -16,5 +15,3 @@ exclude_lines =
 
     if 0:
     if __name__ == .__main__.:
-
-ignore_errors = True
