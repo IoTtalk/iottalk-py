@@ -11,12 +11,12 @@ dai_path_cases = [
     ('abs', 'py'),
     pytest.param(('abs', 'no-py'),
         marks = pytest.mark.skipif(
-            sys.version_info < (3, 4), reason = 'tests only for python2'
+            sys.version_info < (3,), reason = 'python2 not support this case'
         )),
     ('rel', 'py'),
     pytest.param(('rel', 'no-py'),
         marks = pytest.mark.skipif(
-            sys.version_info < (3, 4), reason = 'test only for python2'
+            sys.version_info < (3,), reason = 'python2 not support this case'
         ))
 ]
 
@@ -70,7 +70,7 @@ def dai_path_nonexists(request):
         yield 'nondir/nonfile.py'
 
 
-@pytest.mark.parametrize('dai_path', dai_path_cases, indirect = True)
+@pytest.mark.parametrize('dai_path', dai_path_cases, indirect=True)
 def test_load_module(dai_path):
     m = load_module(dai_path)
     assert m

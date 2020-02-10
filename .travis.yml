@@ -7,7 +7,7 @@ python:
   - "3.7"
   - "3.8"
 install:
-  - pip install -e iottalk-py
+  - pip install -e .
   - pip install codecov
   - pip install pytest pytest-cov
 script:
