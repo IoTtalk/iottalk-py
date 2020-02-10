@@ -1,7 +1,5 @@
-comment: 
-  layout: "reach, diff"
-  require_changes: false
+comment:
   require_base: no
   require_head: no
-  branch:
+  branches:
     - "ib/py2"
