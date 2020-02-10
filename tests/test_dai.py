@@ -70,12 +70,12 @@ def dai_path_nonexists(request):
         ('rel', 'py'),
         pytest.param(('rel', 'no-py'),
             marks = pytest.mark.skipif(
-                sys.version_info < (3, 6), reason = 'tests only for python2'
+                sys.version_info < (3, 4), reason = 'tests only for python2'
             )
         ),
         pytest.param(('abs', 'no-py'),
             marks = pytest.mark.skipif(
-                sys.version_info < (3, 6), reason = 'tests only for python2'
+                sys.version_info < (3, 4), reason = 'tests only for python2'
             )
         )
     ],
