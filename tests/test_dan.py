@@ -10,6 +10,8 @@ from paho.mqtt import client as mqtt
 
 from iottalkpy import dan as iot_dan
 
+@pytest.skip('Not test now', allow_module_level=True)
+
 
 @pytest.fixture()
 def uuid():
@@ -53,7 +55,6 @@ def simple_da(dan, base_url):
     dan.deregister()
 
 
-@pytest.skip('Not test now', allow_module_level=True)
 def test_register_without_id(base_url, dan):
     def on_data(*args):
         pass
