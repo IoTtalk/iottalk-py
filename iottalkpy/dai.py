@@ -25,7 +25,7 @@ _interval = {}
 try:  # Python 3 only
     import importlib
     import importlib.util
-except:
+except ImportError:
     pass
 
 
