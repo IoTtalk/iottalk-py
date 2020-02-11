@@ -11,15 +11,17 @@ dai_path_cases = [
     ('abs', 'py'),
     pytest.param(
         ('abs', 'no-py'),
-        marks = pytest.mark.skipif(
-            sys.version_info.major == 2, reason = 'py2 not support this case'
+        marks=pytest.mark.skipif(
+            sys.version_info.major == 2,
+            reason='Not supported in Python 2'
         )
     ),
     ('rel', 'py'),
     pytest.param(
         ('rel', 'no-py'),
-        marks = pytest.mark.skipif(
-            sys.version_info.major == 2, reason = 'py2 not support this case'
+        marks=pytest.mark.skipif(
+            sys.version_info.major == 2,
+            reason='Not supported in Python2'
         )
     )
 ]
