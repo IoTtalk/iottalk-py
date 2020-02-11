@@ -23,7 +23,7 @@ def get_requires():
 
     # in case of setuptools is old and not support `install_requires` with version
     # e.g. The setuptools of Arduino Yun Rev1 is v0.6.
-    major = setuptools_ver.partition('.')[0]
+    major = int(setuptools_ver.partition('.')[0])
     if major < 20:
         fname = 'compat.txt'
 
