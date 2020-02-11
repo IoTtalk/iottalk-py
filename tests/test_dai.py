@@ -1,0 +1,94 @@
+import os
+import shutil
+import sys
+import tempfile
+
+import pytest
+
+from iottalkpy.dai import load_module
+
+dai_path_cases = [
+    ('abs', 'py'),
+    pytest.param(
+        ('abs', 'no-py'),
+        marks=pytest.mark.skipif(
+            sys.version_info.major == 2,
+            reason='Not supported in Python 2'
+        )
+    ),
+    ('rel', 'py'),
+    pytest.param(
+        ('rel', 'no-py'),
+        marks=pytest.mark.skipif(
+            sys.version_info.major == 2,
+            reason='Not supported in Python2'
+        )
+    )
+]
+
+
+@pytest.fixture
+def dai_path(request):
+    dir_ = tempfile.mkdtemp(prefix='iottalkpy')
+    dir_ = os.path.abspath(dir_)
+
+    with tempfile.NamedTemporaryFile(suffix='.py', dir=dir_, delete=False) as f:
+        f.write(b'\n'.join([
+            b"api_url = 'http://localhost:9992'",
+            b"device_module = 'Dummy_Device'",
+            b"idf_list = ['Dummy_Sensor']",
+            b"push_interval = 10",
+            b"interval = {",
+            b"    'Dummy_Sensor': 1,",
+            b"}",
+        ]))
+
+    if request.param == ('abs', 'py'):
+        yield f.name
+    elif request.param == ('abs', 'no-py'):
+        yield os.path.splitext(f.name)[0]
+    elif request.param[0] == 'rel':
+        h, t = os.path.split(f.name)
+        cwd = os.getcwd()
+        os.chdir(h)
+
+        if request.param == ('rel', 'py'):
+            yield t
+        elif request.param == ('rel', 'no-py'):
+            yield os.path.splitext(t)[0]
+
+        os.chdir(cwd)
+    else:
+        raise ValueError('unknown dai path type: {}'.format(request.param))
+
+    shutil.rmtree(dir_)
+
+
+@pytest.fixture
+def dai_path_nonexists(request):
+    if request.param == ('abs', 'no-py'):
+        yield '/tmp/nondir/nonfile'
+    elif request.param == ('rel', 'no-py'):
+        yield 'nondir/nonfile'
+    elif request.param == ('abs', 'py'):
+        yield '/tmp/nondir/nonfile.py'
+    elif request.param == ('rel', 'py'):
+        yield 'nondir/nonfile.py'
+
+
+@pytest.mark.parametrize('dai_path', dai_path_cases, indirect=True)
+def test_load_module(dai_path):
+    m = load_module(dai_path)
+    assert m
+    assert m.__dict__
+    assert m.__dict__['api_url'] == 'http://localhost:9992'
+    assert m.__dict__['device_module'] == 'Dummy_Device'
+    assert m.__dict__['idf_list'] == ['Dummy_Sensor']
+    assert m.__dict__['push_interval'] == 10
+    assert m.__dict__['interval'] == {'Dummy_Sensor': 1}
+
+
+@pytest.mark.parametrize('dai_path_nonexists', dai_path_cases, indirect=True)
+def test_load_module_nonexists(dai_path_nonexists):
+    with pytest.raises(Exception):
+        load_module(dai_path_nonexists)

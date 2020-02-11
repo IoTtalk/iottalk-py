@@ -1,6 +1,4 @@
 import atexit
-import importlib
-import importlib.util
 import logging
 import os.path
 import platform
@@ -15,6 +13,7 @@ from uuid import UUID
 from iottalkpy.color import DAIColor
 from iottalkpy.dan import DeviceFeature, RegistrationError, NoData
 from iottalkpy.dan import register, push, deregister
+from iottalkpy.utils import cd
 
 log = logging.getLogger(DAIColor.wrap(DAIColor.logger, 'DAI'))
 log.setLevel(level=logging.INFO)
@@ -22,6 +21,12 @@ log.setLevel(level=logging.INFO)
 _flags = {}
 _devices = {}
 _interval = {}
+
+try:  # Python 3 only
+    import importlib
+    import importlib.util
+except ImportError:
+    pass
 
 
 def push_data(df_name):
@@ -70,7 +75,10 @@ def exit_handler(signal, frame):
     sys.exit(0)  # this will trigger ``atexit`` callbacks
 
 
-def _get_device_addr(app) -> str or None:
+def _get_device_addr(app):
+    """
+    :return: ``str`` or ``None``
+    """
     addr = app.__dict__.get('device_addr', None)
     if addr is None:
         return
@@ -89,7 +97,10 @@ def _get_device_addr(app) -> str or None:
     return addr
 
 
-def _get_persistent_binding(app, device_addr) -> bool:
+def _get_persistent_binding(app, device_addr):
+    """
+    :return: bool
+    """
     x = app.__dict__.get('persistent_binding', False)
     if x and device_addr is None:
             msg = ('In case of `persistent_binding` set to `True`, '
@@ -209,7 +220,7 @@ def main(app):
     signal.signal(signal.SIGINT, exit_handler)
 
     log.info('Press Ctrl+C to exit DAI.')
-    if platform.system() == 'Windows':
+    if platform.system() == 'Windows' or sys.version_info.major == 2:
         # workaround for https://bugs.python.org/issue35935
         while True:
             time.sleep(86400)
@@ -218,17 +229,50 @@ def main(app):
 
 
 def load_module(fname):
-    if fname.endswith('.py'):
-        # https://stackoverflow.com/a/67692
-        spec = importlib.util.spec_from_file_location("ida", fname)
-        ida = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(ida)
-    else:
-        # mapping ``/my/path/ida`` to ``my.path.ida``
-        m = '.'.join(os.path.normpath(fname).split(os.path.sep))
-        ida = importlib.import_module(m)
+    if sys.version_info.major > 2:  # python 3+
+        if fname.endswith('.py'):
+            # https://stackoverflow.com/a/67692
+            if sys.version_info >= (3, 5):
+                spec = importlib.util.spec_from_file_location('ida', fname)
+                ida = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(ida)
+            else:  # case of python 3.4
+                # this import only for python 3.4-
+                from importlib.machinery import SourceFileLoader
+                ida = SourceFileLoader('ida', fname).load_module()
+        else:
+            fname = os.path.normpath(fname)
+            m = fname[1:] if fname.startswith('/') else fname
 
-    return ida
+            # mapping ``my/path/ida`` to ``my.path.ida``
+            m = '.'.join(m.split(os.path.sep))
+
+            # well, seems we need to hack sys.path
+            if fname.startswith('/'):
+                with cd('/'):
+                    sys.path.append(os.getcwd())
+                    ida = importlib.import_module(m, )
+            else:
+                sys.path.append(os.getcwd())
+                ida = importlib.import_module(m)
+
+            sys.path.pop()
+
+        return ida
+    else:  # in case of python 2, only single file is supported
+        if os.path.isdir(fname):
+            raise RuntimeError(
+                "Only single file loading is supported in Python 2")
+
+        class App(object):
+            def __init__(self, d):
+                self.__dict__ = d
+
+        d = {}
+        with open(fname) as f:
+            exec(f, d)
+
+        return App(d)
 
 
 if __name__ == '__main__':

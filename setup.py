@@ -6,16 +6,25 @@ from setuptools import find_packages, setup
 import iottalkpy
 
 BASE_DIR = os.path.dirname(__file__)
+REQUIRE_DIR = os.path.join(BASE_DIR, 'requirements')
+
+
+def readlines(fname):
+    with open(os.path.join(REQUIRE_DIR, fname)) as f:
+        return tuple(map(str.strip, f.readlines()))
 
 
 def get_requires():
-    with open(os.path.join(BASE_DIR, 'requirements.txt')) as f:
-        return tuple(map(str.strip, f.readlines()))
+    if (sys.version_info.major, sys.version_info.minor) == (3, 4):
+        fname = 'python34.txt'
+    else:
+        fname = 'python3.txt'
+
+    return readlines(fname)
 
 
 def get_test_requires():
-    with open(os.path.join(BASE_DIR, 'test-requirements.txt')) as f:
-        return tuple(map(str.strip, f.readlines()))
+    return readlines('test.txt')
 
 
 setup(
@@ -32,6 +41,7 @@ setup(
     platforms=['Linux', 'FreeBSD'],
     classifiers=[
         'Development Status :: 3 - Alpha',
+        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
