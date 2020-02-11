@@ -1,5 +1,0 @@
-comment:
-  require_base: no
-  require_head: no
-  branches:
-    - "ib/py2"
