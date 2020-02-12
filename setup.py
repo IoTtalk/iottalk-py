@@ -2,6 +2,7 @@ import os
 import sys
 
 from setuptools import find_packages, setup
+from setuptools import __version__ as setuptools_ver
 
 import iottalkpy
 
@@ -19,6 +20,12 @@ def get_requires():
         fname = 'python34.txt'
     else:
         fname = 'python3.txt'
+
+    # in case of setuptools is old and not support `install_requires` with version
+    # e.g. The setuptools of Arduino Yun Rev1 is v0.6.
+    major = int(setuptools_ver.partition('.')[0])
+    if major < 20:
+        fname = 'compat.txt'
 
     return readlines(fname)
 
@@ -41,6 +48,7 @@ setup(
     platforms=['Linux', 'FreeBSD'],
     classifiers=[
         'Development Status :: 3 - Alpha',
+        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
