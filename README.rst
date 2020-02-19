@@ -26,7 +26,11 @@ Usage of DAI module
 There is a executable DAI module. User can invoke it via the command line
 interface.::
 
-    python -m iottalkpy.dai /path/to/your/ida
+    python -m iottalkpy.dai /path/to/your/ida.py
+
+or::
+
+    python -m iottalkpy.dai /path/to/your/ida  # in case of dir
 
 
 Usage of DAN module
