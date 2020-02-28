@@ -185,24 +185,28 @@ class DAI(Process):
 
 
 def module_to_ida(ida):
-    api_url = getattr(ida, 'api_url', None)
-    device_model = getattr(ida, 'device_model', None)
-    device_addr = getattr(ida, 'device_addr', None)
-    device_name = getattr(ida, 'device_name', None)
-    persistent_binding = getattr(ida, 'persistent_binding', False)
-    username = getattr(ida, 'username', None)
-    extra_setup_webpage = getattr(ida, 'extra_setup_webpage', '')
-    device_webpage = getattr(ida, 'device_webpage', '')
+    kwargs = {
+        k: getattr(ida, k, d)
+        for k, d in [
+            ('api_url', None),
+            ('device_model', None),
+            ('device_addr', None),
+            ('device_name', None),
+            ('persistent_binding', False),
+            ('username', None),
+            ('extra_setup_webpage', ''),
+            ('device_webpage', ''),
+            ('push_interval', 1),
+            ('interval', {}),
 
-    # callbacks
-    register_callback = getattr(ida, 'register_callback', None)
-    on_register = getattr(ida, 'on_register', None)
-    on_deregister = getattr(ida, 'on_deregister', None)
-    on_connect = getattr(ida, 'on_connect', None)
-    on_disconnect = getattr(ida, 'on_disconnect', None)
-
-    push_interval = getattr(ida, 'push_interval', 1)
-    interval = getattr(ida, 'interval', {})
+            # callbacks
+            ('register_callback', None),
+            ('on_register', None),
+            ('on_deregister', None),
+            ('on_connect', None),
+            ('on_disconnect', None),
+        ]
+    }
 
     dfs = {}
     for df_profile in getattr(ida, 'idf_list', []):
@@ -237,13 +241,9 @@ def module_to_ida(ida):
         else:
             raise RegistrationError('unknown odf_list, usage: [df_name, ...]')
 
-    dai = DAI(api_url, device_model, device_addr, device_name,
-              persistent_binding, username,
-              extra_setup_webpage, device_webpage,
-              register_callback, on_register, on_deregister,
-              on_connect, on_disconnect,
-              push_interval, interval, dfs)
-    return dai
+    kwargs['device_features'] = dfs
+
+    return DAI(**kwargs)
 
 
 def load_module(fname):
