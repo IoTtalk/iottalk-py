@@ -1,0 +1,2 @@
+iottalk-paho-mqtt==1.4.0.dev2
+requests>=2.22.0

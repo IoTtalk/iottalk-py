@@ -1,6 +1,4 @@
 import atexit
-import importlib
-import importlib.util
 import logging
 import os.path
 import platform
@@ -15,9 +13,16 @@ from uuid import UUID
 
 from iottalkpy.color import DAIColor
 from iottalkpy.dan import Client, DeviceFeature, RegistrationError, NoData
+from iottalkpy.utils import cd
 
 log = logging.getLogger(DAIColor.wrap(DAIColor.logger, 'DAI'))
 log.setLevel(level=logging.INFO)
+
+try:  # Python 3 only
+    import importlib
+    import importlib.util
+except ImportError:
+    pass
 
 
 class DAI(Process):
@@ -113,10 +118,6 @@ class DAI(Process):
                     log.warning('Invalid device_addr. Change device_addr to None.')
                     self.device_addr = None
 
-        if self.device_name is None:
-            pass
-            # raise RegistrationError('device_name not given.')
-
         if self.persistent_binding and self.device_addr is None:
                 msg = ('In case of `persistent_binding` set to `True`, '
                        'the `device_addr` should be set and fixed.')
@@ -175,7 +176,7 @@ class DAI(Process):
             signal.signal(signal.SIGINT, self.exit_handler)
 
             log.info('Press Ctrl+C to exit DAI.')
-            if platform.system() == 'Windows':
+            if platform.system() == 'Windows' or sys.version_info.major == 2:
                 # workaround for https://bugs.python.org/issue35935
                 while True:
                     time.sleep(86400)
@@ -183,17 +184,7 @@ class DAI(Process):
                 Event().wait()  # wait for SIGINT
 
 
-def load_module(file_name):
-    if file_name.endswith('.py'):
-        # https://stackoverflow.com/a/67692
-        spec = importlib.util.spec_from_file_location("ida", file_name)
-        ida = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(ida)
-    else:
-        # mapping ``/my/path/ida`` to ``my.path.ida``
-        m = '.'.join(os.path.normpath(file_name).split(os.path.sep))
-        ida = importlib.import_module(m)
-
+def module_to_ida(ida):
     api_url = getattr(ida, 'api_url', None)
     device_model = getattr(ida, 'device_model', None)
     device_addr = getattr(ida, 'device_addr', None)
@@ -255,7 +246,57 @@ def load_module(file_name):
     return dai
 
 
-if __name__ == '__main__':
-    dai = load_module(sys.argv[1] if len(sys.argv) > 1 else 'ida')
+def load_module(fname):
+    if sys.version_info.major > 2:  # python 3+
+        if fname.endswith('.py'):
+            # https://stackoverflow.com/a/67692
+            if sys.version_info >= (3, 5):
+                spec = importlib.util.spec_from_file_location('ida', fname)
+                ida = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(ida)
+            else:  # case of python 3.4
+                # this import only for python 3.4-
+                from importlib.machinery import SourceFileLoader
+                ida = SourceFileLoader('ida', fname).load_module()
+        else:
+            fname = os.path.normpath(fname)
+            m = fname[1:] if fname.startswith('/') else fname
+
+            # mapping ``my/path/ida`` to ``my.path.ida``
+            m = '.'.join(m.split(os.path.sep))
+
+            # well, seems we need to hack sys.path
+            if fname.startswith('/'):
+                with cd('/'):
+                    sys.path.append(os.getcwd())
+                    ida = importlib.import_module(m, )
+            else:
+                sys.path.append(os.getcwd())
+                ida = importlib.import_module(m)
+
+            sys.path.pop()
+
+        return ida
+    else:  # in case of python 2, only single file is supported
+        if os.path.isdir(fname):
+            raise RuntimeError(
+                "Only single file loading is supported in Python 2")
+
+        class App(object):
+            def __init__(self, d):
+                self.__dict__ = d
+
+        d = {}
+        with open(fname) as f:
+            exec(f, d)
+
+        return App(d)
+
+
+def main(dai):
     dai.start()
     dai.join()
+
+
+if __name__ == '__main__':
+    main(module_to_ida(load_module(sys.argv[1] if len(sys.argv) > 1 else 'ida')))
