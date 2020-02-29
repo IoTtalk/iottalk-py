@@ -194,7 +194,7 @@ class Client:
 
             res, _ = client.subscribe(self.context.o_chans['ctrl'], qos=2)
             if res != MQTT_ERR_SUCCESS:
-                #FIXME: use proper exceptio type
+                #FIXME: use proper exception type
                 raise Exception('Subscribe to control channel failed')
 
         else:  # in case of reconnecting, we need to renew all subscriptions
