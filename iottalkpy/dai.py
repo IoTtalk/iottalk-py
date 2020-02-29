@@ -198,6 +198,11 @@ class DAI(Process):
             self.join()  # wait for deregistration
 
     def terminate(self, *args, **kwargs):
+        '''
+        Terminate DAI.
+
+        This is a blocking call.
+        '''
         self._event.set()
         self.join()
         return super(DAI, self).terminate(*args, **kwargs)
