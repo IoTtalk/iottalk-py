@@ -7,7 +7,7 @@ import signal
 import sys
 import time
 
-from multiprocessing import Process
+from multiprocessing import Process, Manager
 from threading import Thread, Event
 from uuid import UUID
 
@@ -37,7 +37,9 @@ class DAI(Process):
                  push_interval=1, interval=None, device_features=None):
         super(Process, self).__init__()
 
-        self.dan = Client()
+        self._manager = Manager()
+        self._event = self._manager.Event()  # create Event proxy object at main process
+
         self.api_url = api_url
         self.device_model = device_model
         self.device_addr = device_addr
@@ -98,9 +100,6 @@ class DAI(Process):
     def df_func_name(df_name):
         return re.sub(r'-(I|O)$', r'_\1', df_name)
 
-    def exit_handler(self, signal, frame):
-        sys.exit(0)  # this will trigger ``atexit`` callbacks
-
     def _check_parameter(self):
         if self.api_url is None:
             raise RegistrationError('api_url is required')
@@ -130,7 +129,16 @@ class DAI(Process):
 
         return True
 
+    def finalizer(self):
+        try:
+            if not self.persistent_binding:
+                self.dan.deregister()
+        except Exception as e:
+            log.warning('dai process cleanup exception: %s', e)
+
     def run(self):
+        self.dan = Client()
+
         self._check_parameter()
 
         idf_list = []
@@ -170,25 +178,29 @@ class DAI(Process):
             on_disconnect=f
         )
 
-        if not self.persistent_binding:
-            atexit.register(self.dan.deregister)
-
-        signal.signal(signal.SIGTERM, self.exit_handler)
-        signal.signal(signal.SIGINT, self.exit_handler)
-
         log.info('Press Ctrl+C to exit DAI.')
-        if platform.system() == 'Windows' or sys.version_info.major == 2:
-            # workaround for https://bugs.python.org/issue35935
-            while True:
-                time.sleep(86400)
-        else:
-            Event().wait()  # wait for SIGINT
-
-    def join(self, *args, **kwargs):
         try:
-            return super(DAI, self).join(*args, **kwargs)
+            self._event.wait()
         except KeyboardInterrupt:
             pass
+        finally:
+            self.finalizer()
+
+    def wait(self):
+        try:
+            if platform.system() == 'Windows' or sys.version_info.major == 2:
+                # workaround for https://bugs.python.org/issue35935
+                while True:
+                    time.sleep(86400)
+            else:
+                Event().wait()
+        except KeyboardInterrupt:
+            self.join()  # wait for deregistration
+
+    def terminate(self, *args, **kwargs):
+        self._event.set()
+        self.join()
+        return super(DAI, self).terminate(*args, **kwargs)
 
 
 def parse_df_profile(ida, typ):
@@ -293,7 +305,7 @@ def load_module(fname):
 
 def main(dai):
     dai.start()
-    dai.join()
+    dai.wait()
 
 
 if __name__ == '__main__':
