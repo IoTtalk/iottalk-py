@@ -248,10 +248,10 @@ def module_to_ida(ida):
             ('on_disconnect', None),
         ]
     }
-    kwargs['device_features'] = {
-        **parse_df_profile(ida, 'idf'),
+    kwargs['device_features'] = dict(
+        parse_df_profile(ida, 'idf'),
         **parse_df_profile(ida, 'odf'),
-    }
+    )
 
     return DAI(**kwargs)
 
