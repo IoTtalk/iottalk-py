@@ -132,7 +132,7 @@ class DAI(Process):
 
         return True
 
-    def start(self):
+    def run(self):
         self._check_parameter()
 
         idf_list = []
@@ -150,7 +150,7 @@ class DAI(Process):
             if self.on_disconnect:
                 return self.on_disconnect()
 
-        context = self.dan.register(
+        self.dan.register(
             self.api_url,
             on_signal=self.on_signal,
             on_data=self.on_data,
