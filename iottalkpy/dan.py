@@ -35,6 +35,7 @@ from paho.mqtt import client as mqtt
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 
 from iottalkpy.color import DANColor
+from iottalkpy.exceptions import RegistrationError
 
 # python2 compatibility
 try:
@@ -165,18 +166,6 @@ class Context(object):
         )
 
 
-class RegistrationError(Exception):
-    pass
-
-
-class ApplicationNotFoundError(Exception):
-    pass
-
-
-class AttributeNotFoundError(Exception):
-    pass
-
-
 def _invalid_url(url):
     ''' Check if the url is a valid url
     # This method should be refined
@@ -205,6 +194,7 @@ class Client:
 
             res, _ = client.subscribe(self.context.o_chans['ctrl'], qos=2)
             if res != MQTT_ERR_SUCCESS:
+                #FIXME: use proper exceptio type
                 raise Exception('Subscribe to control channel failed')
 
         else:  # in case of reconnecting, we need to renew all subscriptions

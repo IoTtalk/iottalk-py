@@ -12,7 +12,8 @@ from threading import Thread, Event
 from uuid import UUID
 
 from iottalkpy.color import DAIColor
-from iottalkpy.dan import Client, DeviceFeature, RegistrationError, NoData
+from iottalkpy.dan import Client, DeviceFeature, NoData
+from iottalkpy.exceptions import RegistrationError
 from iottalkpy.utils import cd
 
 log = logging.getLogger(DAIColor.wrap(DAIColor.logger, 'DAI'))
