@@ -31,8 +31,9 @@ class DAI(Process):
                  extra_setup_webpage='', device_webpage='',
                  register_callback=None, on_register=None, on_deregister=None,
                  on_connect=None, on_disconnect=None,
-                 push_interval=1, interval={}, device_features={}, block=True):
+                 push_interval=1, interval=None, device_features=None, block=True):
         super(Process, self).__init__()
+
         self.dan = Client()
         self.api_url = api_url
         self.device_model = device_model
@@ -50,9 +51,9 @@ class DAI(Process):
         self.on_disconnect = on_disconnect
 
         self.push_interval = push_interval
-        self.interval = interval
+        self.interval = interval if interval else {}
 
-        self.device_features = device_features
+        self.device_features = device_features if device_features else {}
         self.flags = {}
 
         self.block = block
@@ -65,7 +66,7 @@ class DAI(Process):
             _data = self.device_features[df_name].push_data()
             if not isinstance(_data, NoData) and _data is not NoData:
                 self.dan.push(df_name, _data)
-            time.sleep(self.interval[df_name])
+            time.sleep(self.interval.get(df_name, self.push_interval))
 
     def on_signal(self, signal, df_list):
         log.info('Receive signal: \033[1;33m%s\033[0m, %s', signal, df_list)
@@ -93,8 +94,8 @@ class DAI(Process):
         return True
 
     @staticmethod
-    def get_df_function_name(df_name):
-        return re.sub(r'-O$', '_O', re.sub(r'-I$', '_I', df_name))
+    def df_func_name(df_name):
+        return re.sub(r'-(I|O)$', r'_\1', df_name)
 
     def exit_handler(self, signal, frame):
         sys.exit(0)  # this will trigger ``atexit`` callbacks
@@ -184,6 +185,28 @@ class DAI(Process):
                 Event().wait()  # wait for SIGINT
 
 
+def parse_df_profile(ida, typ):
+    def f(p):
+        if isinstance(p, str):
+            df_name, param_type = p, None
+        elif isinstance(p, tuple) and len(p) == 2:
+            df_name, param_type = p
+        else:
+            raise RegistrationError(
+                'Invalid `{}_list`, usage: [df_name, ...] '
+                'or [(df_name, type), ...]'.format(typ))
+
+        on_data = push_data = getattr(ida, DAI.df_func_name(p), None)
+
+        df = DeviceFeature(
+            df_name=df_name, df_type=typ, param_type=param_type,
+            push_data=push_data, on_data=on_data)
+        return p, df
+
+    profiles = getattr(ida, '{}_list'.format(typ), [])
+    return dict(map(f, profiles))
+
+
 def module_to_ida(ida):
     kwargs = {
         k: getattr(ida, k, d)
@@ -207,41 +230,10 @@ def module_to_ida(ida):
             ('on_disconnect', None),
         ]
     }
-
-    dfs = {}
-    for df_profile in getattr(ida, 'idf_list', []):
-        if isinstance(df_profile, str):
-            dfs[df_profile] = DeviceFeature(df_name=df_profile,
-                                            df_type='idf')
-            dfs[df_profile].push_data = getattr(ida, DAI.get_df_function_name(df_profile), None)
-
-            # check push data   interval
-            interval[df_profile] = interval[df_profile] or push_interval
-        elif isinstance(df_profile, tuple) and len(df_profile) == 2:
-            dfs[df_profile[0]] = DeviceFeature(df_name=df_profile[0],
-                                               df_type='idf',
-                                               param_type=df_profile[1])
-            dfs[df_profile[0]].push_data = getattr(ida, DAI.get_df_function_name(df_profile[0]), None)
-
-            # check push data interval
-            interval[df_profile[0]] = interval[df_profile[0]] or push_interval
-        else:
-            raise RegistrationError('unknown idf_list, usage: [df_name, ...]')
-
-    for df_profile in getattr(ida, 'odf_list', []):
-        if isinstance(df_profile, str):
-            dfs[df_profile] = DeviceFeature(df_name=df_profile,
-                                            df_type='odf')
-            dfs[df_profile].on_data = getattr(ida, DAI.get_df_function_name(df_profile), None)
-        elif isinstance(df_profile, tuple) and len(df_profile) == 2:
-            dfs[df_profile[0]] = DeviceFeature(df_name=df_profile[0],
-                                               df_type='odf',
-                                               param_type=df_profile[1])
-            dfs[df_profile[0]].on_data = getattr(ida, DAI.get_df_function_name(df_profile[0]), None)
-        else:
-            raise RegistrationError('unknown odf_list, usage: [df_name, ...]')
-
-    kwargs['device_features'] = dfs
+    kwargs['device_features'] = {
+        **parse_df_profile(ida, 'idf'),
+        **parse_df_profile(ida, 'odf'),
+    }
 
     return DAI(**kwargs)
 

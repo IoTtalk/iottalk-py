@@ -56,12 +56,19 @@ class NoData():
 
 
 class DeviceFeature(object):
-    def __init__(self, df_name, df_type, param_type=None):
+    def __init__(self, df_name, df_type, param_type=None, push_data=None,
+                 on_data=None):
         self.df_name = df_name
-        self.df_type = df_type  # idf / odf
+        self.df_type = df_type  # idf | odf
         self.param_type = param_type if param_type is not None else [None]
+
         self._on_data = None
+        if df_type == 'odf' and on_data:
+            self.on_data = on_data
+
         self._push_data = None
+        if df_type == 'idf' and push_data:
+            self.push_data = push_data
 
     @property
     def df_name(self):
