@@ -420,6 +420,7 @@ class Client:
         ctx.mqtt_client.on_connect = self._on_connect
         ctx.mqtt_client.on_disconnect = self._on_disconnect
 
+        ctx.mqtt_client.enable_logger(log)
         ctx.mqtt_client.will_set(
             self.context.i_chans['ctrl'],
             json.dumps({'state': 'offline', 'rev': rev}),
