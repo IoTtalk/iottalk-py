@@ -27,6 +27,8 @@ except ImportError:
 
 
 class DAI(Process):
+    daemon = True
+
     def __init__(self, api_url, device_model, device_addr=None,
                  device_name=None, persistent_binding=False, username=None,
                  extra_setup_webpage='', device_webpage='',
