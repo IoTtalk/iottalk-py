@@ -33,6 +33,22 @@ or::
     python -m iottalkpy.dai /path/to/your/ida  # in case of dir
 
 
+API
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+If you want to operate DAI via Python API:
+
+.. code-block:: python
+
+    from iottalkpy import dai
+
+    ida = dai.module_to_ida(dai.load_module('/path/to/ida.py'))
+    ida.start()
+    ...
+    # stop ida process
+    ida.terminate()
+
+
 Usage of DAN module
 ----------------------------------------------------------------------
 
