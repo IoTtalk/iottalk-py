@@ -250,8 +250,7 @@ def module_to_ida(ida):
     }
     kwargs['device_features'] = dict(
         parse_df_profile(ida, 'idf'),
-        **parse_df_profile(ida, 'odf'),
-    )
+        **parse_df_profile(ida, 'odf'))
 
     return DAI(**kwargs)
 
