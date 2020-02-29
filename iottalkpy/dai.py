@@ -34,7 +34,7 @@ class DAI(Process):
                  extra_setup_webpage='', device_webpage='',
                  register_callback=None, on_register=None, on_deregister=None,
                  on_connect=None, on_disconnect=None,
-                 push_interval=1, interval=None, device_features=None, block=True):
+                 push_interval=1, interval=None, device_features=None):
         super(Process, self).__init__()
 
         self.dan = Client()
@@ -58,8 +58,6 @@ class DAI(Process):
 
         self.device_features = device_features if device_features else {}
         self.flags = {}
-
-        self.block = block
 
     def push_data(self, df_name):
         if not self.device_features[df_name].push_data:
@@ -175,17 +173,22 @@ class DAI(Process):
         if not self.persistent_binding:
             atexit.register(self.dan.deregister)
 
-        if self.block:
-            signal.signal(signal.SIGTERM, self.exit_handler)
-            signal.signal(signal.SIGINT, self.exit_handler)
+        signal.signal(signal.SIGTERM, self.exit_handler)
+        signal.signal(signal.SIGINT, self.exit_handler)
 
-            log.info('Press Ctrl+C to exit DAI.')
-            if platform.system() == 'Windows' or sys.version_info.major == 2:
-                # workaround for https://bugs.python.org/issue35935
-                while True:
-                    time.sleep(86400)
-            else:
-                Event().wait()  # wait for SIGINT
+        log.info('Press Ctrl+C to exit DAI.')
+        if platform.system() == 'Windows' or sys.version_info.major == 2:
+            # workaround for https://bugs.python.org/issue35935
+            while True:
+                time.sleep(86400)
+        else:
+            Event().wait()  # wait for SIGINT
+
+    def join(self, *args, **kwargs):
+        try:
+            return super(DAI, self).join(*args, **kwargs)
+        except KeyboardInterrupt:
+            pass
 
 
 def parse_df_profile(ida, typ):
