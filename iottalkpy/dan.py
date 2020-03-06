@@ -293,7 +293,10 @@ class Client:
         client.disconnect()
 
     def _on_disconnect(self, client, userdata, rc):
-        log.info('Disconnect to %s.', DANColor.wrap(DANColor.data, self.context.url))
+        log.info('%s (%s) disconnected from  %s.',
+                 DANColor.wrap(DANColor.data, self.context.name),
+                 DANColor.wrap(DANColor.data, self.context.app_id),
+                 DANColor.wrap(DANColor.data, self.context.url))
         if hasattr(self, '_disconn_lock'):  # we won't have it if reconnecting
             self._disconn_lock.release()
 
