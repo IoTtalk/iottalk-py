@@ -6,6 +6,7 @@ import tempfile
 import pytest
 
 from iottalkpy.dai import load_module
+from iottalkpy.dai import parse_df_profile
 
 dai_path_cases = [
     ('abs', 'py'),
@@ -24,6 +25,13 @@ dai_path_cases = [
             reason='Not supported in Python2'
         )
     )
+]
+
+
+ida_profile_cases = [
+    ('ida', 'str'),
+    ('ida', 'tuple', 'len=2'),
+    ('RegistrationError')
 ]
 
 
@@ -76,6 +84,39 @@ def dai_path_nonexists(request):
         yield 'nondir/nonfile.py'
 
 
+@pytest.fixture
+def ida_profile(request):
+    dir_ = tempfile.mkdtemp(prefix='iottalkpy')
+    dir_ = os.path.abspath(dir_)
+
+    with tempfile.NamedTemporaryFile(suffix='.py', dir=dir_, delete=False) as f:
+        f.write(b'\n'.join([
+            b"idf_list = ['Dummy_Sensor']",
+            b"odf_list = ['Dummy_Control']"
+        ]))
+
+    if request.param == ('ida', 'str'):
+        yield load_module(f.name)
+    elif request.param == ('ida', 'tuple', 'len=2'):
+        f = open(f.name, 'wb+')
+        f.write(b'\n'.join([
+            b"idf_list = [('Dummy_Sensor', 'inputname')]",
+            b"odf_list = [('Dummy_Control', 'outputname')]"
+            ]))
+        f.close()
+        yield load_module(f.name)
+    else:
+        f = open(f.name, 'wb+')
+        f.write(b'\n'.join([
+            b"idf_list = [3, 2, 1]",
+            b"odf_list = [1, 2, 3]"
+            ]))
+        f.close()
+        yield load_module(f.name)
+
+    shutil.rmtree(dir_)
+
+
 @pytest.mark.parametrize('dai_path', dai_path_cases, indirect=True)
 def test_load_module(dai_path):
     m = load_module(dai_path)
@@ -92,3 +133,18 @@ def test_load_module(dai_path):
 def test_load_module_nonexists(dai_path_nonexists):
     with pytest.raises(Exception):
         load_module(dai_path_nonexists)
+
+
+@pytest.mark.parametrize('ida_profile', ida_profile_cases[:2], indirect=True)
+def test_parse_df_profile(ida_profile):
+    idf = parse_df_profile(ida_profile, 'idf')
+    odf = parse_df_profile(ida_profile, 'odf')
+    assert idf
+    assert odf
+
+
+@pytest.mark.parametrize('ida_profile', ida_profile_cases[2:], indirect=True)
+def test_parse_df_profile_RegistrationError(ida_profile):
+    with pytest.raises(ImportError):
+        parse_df_profile(ida_profile, 'idf')
+        parse_df_profile(ida_profile, 'odf')
