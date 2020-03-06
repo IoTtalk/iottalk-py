@@ -231,7 +231,7 @@ def parse_df_profile(ida, typ):
                 'Invalid `{}_list`, usage: [df_name, ...] '
                 'or [(df_name, type), ...]'.format(typ))
 
-        on_data = push_data = getattr(ida, DAI.df_func_name(p), None)
+        on_data = push_data = getattr(ida, DAI.df_func_name(df_name), None)
 
         df = DeviceFeature(
             df_name=df_name, df_type=typ, param_type=param_type,
