@@ -35,7 +35,7 @@ class DAI(Process):
                  register_callback=None, on_register=None, on_deregister=None,
                  on_connect=None, on_disconnect=None,
                  push_interval=1, interval=None, device_features=None):
-        super(Process, self).__init__()
+        super(DAI, self).__init__()
 
         self._manager = Manager()
         self._event = self._manager.Event()  # create Event proxy object at main process
