@@ -148,7 +148,6 @@ class DAI(Process):
 
         self.dan = Client()
 
-
         idf_list = []
         odf_list = []
         for df in self.device_features.values():
