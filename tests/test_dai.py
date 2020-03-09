@@ -28,10 +28,9 @@ dai_path_cases = [
     )
 ]
 
-
 ida_profile_cases = [
     ('ida', 'str'),
-    ('ida', 'tuple', 'len=2',),
+    ('ida', 'tuple', 'len=2'),
     ('RegistrationError',)
 ]
 
@@ -91,20 +90,17 @@ def ida_profile(request):
     dir_ = os.path.abspath(dir_)
 
     if request.param == ('ida', 'str'):
-        content = '''
-idf_list = ['Dummy_Sensor']
-odf_list = ['Dummy_Control']
-'''
+        content = '\n'.join([
+            "idf_list = ['Dummy_Sensor']",
+            "odf_list = ['Dummy_Control']"])
     elif request.param == ('ida', 'tuple', 'len=2',):
-        content = '''
-idf_list = [('Dummy_Sensor', 'type',)]
-odf_list = [('Dummy_Control', 'type',)]
-'''
+        content = '\n'.join([
+            "idf_list = [('Dummy_Sensor', 'type',)]",
+            "odf_list = [('Dummy_Control', 'type',)]"])
     else:
-        content = '''
-idf_list = [1, 2, 3,]
-odf_list = [10,]
-'''
+        content = '\n'.join([
+            "idf_list = [1, 2, 3,]",
+            "odf_list = [10,]"])
 
     with tempfile.NamedTemporaryFile(suffix='.py', dir=dir_, delete=False) as f:
         f.write(content.encode())
@@ -145,4 +141,5 @@ def test_parse_df_profile(ida_profile):
 def test_parse_df_profile_RegistrationError(ida_profile):
     with pytest.raises(RegistrationError):
         parse_df_profile(ida_profile, 'idf')
+    with pytest.raises(RegistrationError):
         parse_df_profile(ida_profile, 'odf')
