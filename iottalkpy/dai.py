@@ -144,9 +144,10 @@ class DAI(Process):
         return ret
 
     def run(self):  # this function will be executed in child process
+        self._check_parameter()
+        
         self.dan = Client()
 
-        self._check_parameter()
 
         idf_list = []
         odf_list = []
