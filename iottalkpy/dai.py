@@ -145,7 +145,7 @@ class DAI(Process):
 
     def run(self):  # this function will be executed in child process
         self._check_parameter()
-        
+
         self.dan = Client()
 
 
@@ -237,7 +237,7 @@ def parse_df_profile(ida, typ):
         df = DeviceFeature(
             df_name=df_name, df_type=typ, param_type=param_type,
             push_data=push_data, on_data=on_data)
-        return p, df
+        return df_name, df
 
     profiles = getattr(ida, '{}_list'.format(typ), [])
     return dict(map(f, profiles))
