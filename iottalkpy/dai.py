@@ -7,20 +7,17 @@ import signal
 import sys
 import time
 
+from multiprocessing import Process, Manager
 from threading import Thread, Event
 from uuid import UUID
 
 from iottalkpy.color import DAIColor
-from iottalkpy.dan import DeviceFeature, RegistrationError, NoData
-from iottalkpy.dan import register, push, deregister
+from iottalkpy.dan import Client, DeviceFeature, NoData
+from iottalkpy.exceptions import RegistrationError
 from iottalkpy.utils import cd
 
 log = logging.getLogger(DAIColor.wrap(DAIColor.logger, 'DAI'))
 log.setLevel(level=logging.INFO)
-
-_flags = {}
-_devices = {}
-_interval = {}
 
 try:  # Python 3 only
     import importlib
@@ -29,203 +26,250 @@ except ImportError:
     pass
 
 
-def push_data(df_name):
-    if not _devices[df_name].push_data:
-        return
-    log.debug('%s:%s', df_name, _flags[df_name])
-    while _flags[df_name]:
-        _data = _devices[df_name].push_data()
-        if not isinstance(_data, NoData) and _data is not NoData:
-            push(df_name, _data)
-        time.sleep(_interval[df_name])
+class DAI(Process):
+    daemon = True
 
+    def __init__(self, api_url, device_model, device_addr=None,
+                 device_name=None, persistent_binding=False, username=None,
+                 extra_setup_webpage='', device_webpage='',
+                 register_callback=None, on_register=None, on_deregister=None,
+                 on_connect=None, on_disconnect=None,
+                 push_interval=1, interval=None, device_features=None):
+        super(DAI, self).__init__()
 
-def on_signal(signal, df_list):
-    global _flags
-    log.info('Receive signal: \033[1;33m%s\033[0m, %s', signal, df_list)
-    if 'CONNECT' == signal:
-        for df_name in df_list:
-            if not _flags.get(df_name):
-                _flags[df_name] = True
-                t = Thread(target=push_data, args=(df_name,))
-                t.daemon = True
-                t.start()
-    elif 'DISCONNECT' == signal:
-        for df_name in df_list:
-            _flags[df_name] = False
-    elif 'SUSPEND' == signal:
-        # Not use
-        pass
-    elif 'RESUME' == signal:
-        # Not use
-        pass
-    return True
+        self._manager = Manager()
+        self._event = self._manager.Event()  # create Event proxy object at main process
 
+        self.api_url = api_url
+        self.device_model = device_model
+        self.device_addr = device_addr
+        self.device_name = device_name
+        self.persistent_binding = persistent_binding
+        self.username = username
+        self.extra_setup_webpage = extra_setup_webpage
+        self.device_webpage = device_webpage
 
-def get_df_function_name(df_name):
-    return re.sub(r'-O$', '_O', re.sub(r'-I$', '_I', df_name))
+        self.register_callback = register_callback
+        self.on_register = on_register
+        self.on_deregister = on_deregister
+        self.on_connect = on_connect
+        self.on_disconnect = on_disconnect
 
+        self.push_interval = push_interval
+        self.interval = interval if interval else {}
 
-def on_data(df_name, data):
-    _devices[df_name].on_data(data)
-    return True
+        self.device_features = device_features if device_features else {}
+        self.flags = {}
 
+    def push_data(self, df_name):
+        if not self.device_features[df_name].push_data:
+            return
+        log.debug('%s:%s', df_name, self.flags[df_name])
+        while self.flags[df_name]:
+            _data = self.device_features[df_name].push_data()
+            if not isinstance(_data, NoData) and _data is not NoData:
+                self.dan.push(df_name, _data)
+            time.sleep(self.interval.get(df_name, self.push_interval))
 
-def exit_handler(signal, frame):
-    sys.exit(0)  # this will trigger ``atexit`` callbacks
+    def on_signal(self, signal, df_list):
+        log.info('Receive signal: \033[1;33m%s\033[0m, %s', signal, df_list)
+        if 'CONNECT' == signal:
+            for df_name in df_list:
+                # race condition
+                if not self.flags.get(df_name):
+                    self.flags[df_name] = True
+                    t = Thread(target=self.push_data, args=(df_name,))
+                    t.daemon = True
+                    t.start()
+        elif 'DISCONNECT' == signal:
+            for df_name in df_list:
+                self.flags[df_name] = False
+        elif 'SUSPEND' == signal:
+            # Not use
+            pass
+        elif 'RESUME' == signal:
+            # Not use
+            pass
+        return True
 
+    def on_data(self, df_name, data):
+        self.device_features[df_name].on_data(data)
+        return True
 
-def _get_device_addr(app):
-    """
-    :return: ``str`` or ``None``
-    """
-    addr = app.__dict__.get('device_addr', None)
-    if addr is None:
-        return
-    if isinstance(addr, UUID):
-        return str(addr)
+    @staticmethod
+    def df_func_name(df_name):
+        return re.sub(r'-(I|O)$', r'_\1', df_name)
 
-    try:
-        UUID(addr)
-    except ValueError:
+    def _check_parameter(self):
+        if self.api_url is None:
+            raise RegistrationError('api_url is required')
+
+        if self.device_model is None:
+            raise RegistrationError('device_model not given.')
+
+        if isinstance(self.device_addr, UUID):
+            self.device_addr = str(self.device_addr)
+        elif self.device_addr:
+            try:
+                UUID(self.device_addr)
+            except ValueError:
+                try:
+                    self.device_addr = str(UUID(int=int(self.device_addr, 16)))
+                except ValueError:
+                    log.warning('Invalid device_addr. Change device_addr to None.')
+                    self.device_addr = None
+
+        if self.persistent_binding and self.device_addr is None:
+                msg = ('In case of `persistent_binding` set to `True`, '
+                       'the `device_addr` should be set and fixed.')
+                raise ValueError(msg)
+
+        if not self.device_features.keys():
+            raise RegistrationError('Neither idf_list nor odf_list is empty.')
+
+        return True
+
+    def finalizer(self):
         try:
-            addr = str(UUID(int=int(addr, 16)))
-        except ValueError:
-            log.warning('Invalid device_addr. Change device_addr to None.')
-            addr = None
+            if not self.persistent_binding:
+                self.dan.deregister()
+        except Exception as e:
+            log.warning('dai process cleanup exception: %s', e)
 
-    return addr
+    def start(self, *args, **kwargs):
+        ret = super(DAI, self).start(*args, **kwargs)
+        # conduct deregistration properly,
+        # if one doesn't stop process before main process ends
+        atexit.register(self.terminate)
+        return ret
+
+    def run(self):  # this function will be executed in child process
+        self._check_parameter()
+
+        self.dan = Client()
+
+        idf_list = []
+        odf_list = []
+        for df in self.device_features.values():
+            if df.df_type == 'idf':
+                idf_list.append(df.profile())
+            else:
+                odf_list.append(df.profile())
+
+        def f():
+            for key in self.flags:
+                self.flags[key] = False
+            log.debug('on_disconnect: _flag = %s', str(self.flags))
+            if self.on_disconnect:
+                return self.on_disconnect()
+
+        self.dan.register(
+            self.api_url,
+            on_signal=self.on_signal,
+            on_data=self.on_data,
+            accept_protos=['mqtt'],
+            id_=self.device_addr,
+            idf_list=idf_list,
+            odf_list=odf_list,
+            name=self.device_name,
+            profile={
+                'model': self.device_model,
+                'u_name': self.username,
+                'extra_setup_webpage': self.extra_setup_webpage,
+                'device_webpage': self.device_webpage,
+            },
+            register_callback=self.register_callback,
+            on_register=self.on_register,
+            on_deregister=self.on_deregister,
+            on_connect=self.on_connect,
+            on_disconnect=f
+        )
+
+        log.info('Press Ctrl+C to exit DAI.')
+        try:
+            self._event.wait()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.finalizer()
+
+    def wait(self):
+        try:
+            if platform.system() == 'Windows' or sys.version_info.major == 2:
+                # workaround for https://bugs.python.org/issue35935
+                while True:
+                    time.sleep(86400)
+            else:
+                Event().wait()
+        except KeyboardInterrupt:
+            self.join()  # wait for deregistration
+
+    def terminate(self, *args, **kwargs):
+        '''
+        Terminate DAI.
+
+        This is a blocking call.
+        '''
+        try:
+            self._event.set()
+        except Exception:
+            # this is triggered if the ``run`` function ended already.
+            pass
+
+        self.join()
+        return super(DAI, self).terminate(*args, **kwargs)
 
 
-def _get_persistent_binding(app, device_addr):
-    """
-    :return: bool
-    """
-    x = app.__dict__.get('persistent_binding', False)
-    if x and device_addr is None:
-            msg = ('In case of `persistent_binding` set to `True`, '
-                   'the `device_addr` should be set and fixed.')
-            raise ValueError(msg)
-    return x
-
-
-def main(app):
-    global _devices, _interval
-    csmapi = app.__dict__.get('api_url')
-    if csmapi is None:
-        raise RegistrationError('api_url is required')
-
-    device_name = app.__dict__.get('device_name')
-    if device_name is None:
-        pass
-        # raise RegistrationError('device_name not given.')
-
-    device_model = app.__dict__.get('device_model')
-    if device_model is None:
-        raise RegistrationError('device_model not given.')
-
-    device_addr = _get_device_addr(app)
-    persistent_binding = _get_persistent_binding(app, device_addr)
-
-    # callbacks
-    register_callback = app.__dict__.get('register_callback')
-    on_register = app.__dict__.get('on_register')
-    on_deregister = app.__dict__.get('on_deregister')
-    on_connect = app.__dict__.get('on_connect')
-    on_disconnect = app.__dict__.get('on_disconnect')
-
-    idfs = app.__dict__.get('idf_list', [])
-    odfs = app.__dict__.get('odf_list', [])
-
-    username = app.__dict__.get('username')
-
-    extra_setup_webpage = app.__dict__.get('extra_setup_webpage', '')
-    device_webpage = app.__dict__.get('device_webpage', '')
-
-    _push_interval = app.__dict__.get('push_interval', 1)
-    _interval = app.__dict__.get('interval', {})
-
-    if not idfs and not odfs:
-        raise RegistrationError('Neither idf_list nor odf_list is empty.')
-
-    idf_list = []
-    for df_profile in idfs:
-        if isinstance(df_profile, str):
-            _devices[df_profile] = DeviceFeature(df_name=df_profile)
-            _devices[df_profile].push_data = app.__dict__.get(get_df_function_name(df_profile))
-            idf_list.append(_devices[df_profile].profile())
-
-            # check push data   interval
-            if not _interval.get(df_profile):
-                _interval[df_profile] = _push_interval
-        elif isinstance(df_profile, tuple) and len(df_profile) == 2:
-            _devices[df_profile[0]] = DeviceFeature(df_name=df_profile[0],
-                                                    df_type=df_profile[1])
-            _devices[df_profile[0]].push_data = app.__dict__.get(get_df_function_name(df_profile[0]))
-            idf_list.append(_devices[df_profile[0]].profile())
-
-            # check push data interval
-            if not _interval.get(df_profile[0]):
-                _interval[df_profile[0]] = _push_interval
+def parse_df_profile(ida, typ):
+    def f(p):
+        if isinstance(p, str):
+            df_name, param_type = p, None
+        elif isinstance(p, tuple) and len(p) == 2:
+            df_name, param_type = p
         else:
-            raise RegistrationError('unknown idf_list, usage: [df_name, ...]')
+            raise RegistrationError(
+                'Invalid `{}_list`, usage: [df_name, ...] '
+                'or [(df_name, type), ...]'.format(typ))
 
-    odf_list = []
-    for df_profile in odfs:
-        if isinstance(df_profile, str):
-            _devices[df_profile] = DeviceFeature(df_name=df_profile)
-            _devices[df_profile].on_data = app.__dict__.get(get_df_function_name(df_profile))
-            odf_list.append(_devices[df_profile].profile())
-        elif isinstance(df_profile, tuple) and len(df_profile) == 2:
-            _devices[df_profile[0]] = DeviceFeature(df_name=df_profile[0],
-                                                    df_type=df_profile[1])
-            _devices[df_profile[0]].on_data = app.__dict__.get(get_df_function_name(df_profile[0]))
-            odf_list.append(_devices[df_profile[0]].profile())
-        else:
-            raise RegistrationError('unknown odf_list, usage: [df_name, ...]')
+        on_data = push_data = getattr(ida, DAI.df_func_name(df_name), None)
 
-    def f():
-        global _flags
-        for key in _flags:
-            _flags[key] = False
-        log.debug('on_disconnect: _flag = %s', str(_flags))
-        if on_disconnect:
-            return on_disconnect()
+        df = DeviceFeature(
+            df_name=df_name, df_type=typ, param_type=param_type,
+            push_data=push_data, on_data=on_data)
+        return df_name, df
 
-    context = register(
-        csmapi,
-        on_signal=on_signal,
-        on_data=on_data,
-        accept_protos=['mqtt'],
-        id_=device_addr,
-        idf_list=idf_list,
-        odf_list=odf_list,
-        name=device_name,
-        profile={
-            'model': device_model,
-            'u_name': username,
-            'extra_setup_webpage': extra_setup_webpage,
-            'device_webpage': device_webpage,
-        },
-        register_callback=register_callback,
-        on_register=on_register,
-        on_deregister=on_deregister,
-        on_connect=on_connect,
-        on_disconnect=f
-    )
+    profiles = getattr(ida, '{}_list'.format(typ), [])
+    return dict(map(f, profiles))
 
-    if not persistent_binding:
-        atexit.register(deregister)
-    signal.signal(signal.SIGTERM, exit_handler)
-    signal.signal(signal.SIGINT, exit_handler)
 
-    log.info('Press Ctrl+C to exit DAI.')
-    if platform.system() == 'Windows' or sys.version_info.major == 2:
-        # workaround for https://bugs.python.org/issue35935
-        while True:
-            time.sleep(86400)
-    else:
-        Event().wait()  # wait for SIGINT
+def module_to_ida(ida):
+    kwargs = {
+        k: getattr(ida, k, d)
+        for k, d in [
+            ('api_url', None),
+            ('device_model', None),
+            ('device_addr', None),
+            ('device_name', None),
+            ('persistent_binding', False),
+            ('username', None),
+            ('extra_setup_webpage', ''),
+            ('device_webpage', ''),
+            ('push_interval', 1),
+            ('interval', {}),
+
+            # callbacks
+            ('register_callback', None),
+            ('on_register', None),
+            ('on_deregister', None),
+            ('on_connect', None),
+            ('on_disconnect', None),
+        ]
+    }
+    kwargs['device_features'] = dict(
+        parse_df_profile(ida, 'idf'),
+        **parse_df_profile(ida, 'odf'))
+
+    return DAI(**kwargs)
 
 
 def load_module(fname):
@@ -275,5 +319,10 @@ def load_module(fname):
         return App(d)
 
 
+def main(dai):
+    dai.start()
+    dai.wait()
+
+
 if __name__ == '__main__':
-    main(load_module(sys.argv[1] if len(sys.argv) > 1 else 'ida'))
+    main(module_to_ida(load_module(sys.argv[1] if len(sys.argv) > 1 else 'ida')))
