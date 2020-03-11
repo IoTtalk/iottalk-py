@@ -27,7 +27,6 @@ dai_path_cases = [
         )
     )
 ]
-
 ida_profile_cases = [
     ('ida', 'str'),
     ('ida', 'tuple', 'len=2'),
