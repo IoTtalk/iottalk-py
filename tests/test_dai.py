@@ -27,9 +27,9 @@ dai_path_cases = [
         )
     )
 ]
-ida_profile_cases = [
-    ('ida', 'str'),
-    ('ida', 'tuple', 'len=2'),
+sa_profile_cases = [
+    ('sa', 'str'),
+    ('sa', 'tuple', 'len=2'),
     ('RegistrationError',)
 ]
 
@@ -84,15 +84,15 @@ def dai_path_nonexists(request):
 
 
 @pytest.fixture
-def ida_profile(request):
+def sa_profile(request):
     dir_ = tempfile.mkdtemp(prefix='iottalkpy')
     dir_ = os.path.abspath(dir_)
 
-    if request.param == ('ida', 'str'):
+    if request.param == ('sa', 'str'):
         content = '\n'.join([
             "idf_list = ['Dummy_Sensor']",
             "odf_list = ['Dummy_Control']"])
-    elif request.param == ('ida', 'tuple', 'len=2',):
+    elif request.param == ('sa', 'tuple', 'len=2',):
         content = '\n'.join([
             "idf_list = [('Dummy_Sensor', 'type',)]",
             "odf_list = [('Dummy_Control', 'type',)]"])
@@ -126,19 +126,19 @@ def test_load_module_nonexists(dai_path_nonexists):
         load_module(dai_path_nonexists)
 
 
-@pytest.mark.parametrize('ida_profile', ida_profile_cases[:2], indirect=True)
-def test_parse_df_profile(ida_profile):
-    idf = parse_df_profile(ida_profile, 'idf')
-    odf = parse_df_profile(ida_profile, 'odf')
+@pytest.mark.parametrize('sa_profile', sa_profile_cases[:2], indirect=True)
+def test_parse_df_profile(sa_profile):
+    idf = parse_df_profile(sa_profile, 'idf')
+    odf = parse_df_profile(sa_profile, 'odf')
     assert idf
     assert odf
     assert idf['Dummy_Sensor'].df_type == 'idf'
     assert odf['Dummy_Control'].df_type == 'odf'
 
 
-@pytest.mark.parametrize('ida_profile', ida_profile_cases[-1], indirect=True)
-def test_parse_df_profile_RegistrationError(ida_profile):
+@pytest.mark.parametrize('sa_profile', sa_profile_cases[-1], indirect=True)
+def test_parse_df_profile_RegistrationError(sa_profile):
     with pytest.raises(RegistrationError):
-        parse_df_profile(ida_profile, 'idf')
+        parse_df_profile(sa_profile, 'idf')
     with pytest.raises(RegistrationError):
-        parse_df_profile(ida_profile, 'odf')
+        parse_df_profile(sa_profile, 'odf')
