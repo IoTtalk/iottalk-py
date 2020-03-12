@@ -30,7 +30,7 @@ interface.::
 
 or::
 
-    python -m iottalkpy.dai /path/to/your/sa# in case of dir
+    python -m iottalkpy.dai /path/to/your/sa  # in case of dir
 
 
 API
