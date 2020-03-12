@@ -35,7 +35,7 @@ class DAI(Process):
                  register_callback=None, on_register=None, on_deregister=None,
                  on_connect=None, on_disconnect=None,
                  push_interval=1, interval=None, device_features=None):
-        super(Process, self).__init__()
+        super(DAI, self).__init__()
 
         self._manager = Manager()
         self._event = self._manager.Event()  # create Event proxy object at main process
@@ -136,11 +136,26 @@ class DAI(Process):
         except Exception as e:
             log.warning('dai process cleanup exception: %s', e)
 
+<<<<<<< HEAD
     def run(self):
         self.dan = Client()
 
         self._check_parameter()
 
+=======
+    def start(self, *args, **kwargs):
+        ret = super(DAI, self).start(*args, **kwargs)
+        # conduct deregistration properly,
+        # if one doesn't stop process before main process ends
+        atexit.register(self.terminate)
+        return ret
+
+    def run(self):  # this function will be executed in child process
+        self._check_parameter()
+
+        self.dan = Client()
+
+>>>>>>> 448b4ad8e4d14fa95ad62cffc24dc980154cb21a
         idf_list = []
         odf_list = []
         for df in self.device_features.values():
@@ -203,7 +218,16 @@ class DAI(Process):
 
         This is a blocking call.
         '''
+<<<<<<< HEAD
         self._event.set()
+=======
+        try:
+            self._event.set()
+        except Exception:
+            # this is triggered if the ``run`` function ended already.
+            pass
+
+>>>>>>> 448b4ad8e4d14fa95ad62cffc24dc980154cb21a
         self.join()
         return super(DAI, self).terminate(*args, **kwargs)
 
@@ -219,12 +243,20 @@ def parse_df_profile(ida, typ):
                 'Invalid `{}_list`, usage: [df_name, ...] '
                 'or [(df_name, type), ...]'.format(typ))
 
+<<<<<<< HEAD
         on_data = push_data = getattr(ida, DAI.df_func_name(p), None)
+=======
+        on_data = push_data = getattr(ida, DAI.df_func_name(df_name), None)
+>>>>>>> 448b4ad8e4d14fa95ad62cffc24dc980154cb21a
 
         df = DeviceFeature(
             df_name=df_name, df_type=typ, param_type=param_type,
             push_data=push_data, on_data=on_data)
+<<<<<<< HEAD
         return p, df
+=======
+        return df_name, df
+>>>>>>> 448b4ad8e4d14fa95ad62cffc24dc980154cb21a
 
     profiles = getattr(ida, '{}_list'.format(typ), [])
     return dict(map(f, profiles))
