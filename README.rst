@@ -26,11 +26,11 @@ Usage of DAI module
 There is a executable DAI module. User can invoke it via the command line
 interface.::
 
-    python -m iottalkpy.dai /path/to/your/ida.py
+    python -m iottalkpy.dai /path/to/your/sa.py
 
 or::
 
-    python -m iottalkpy.dai /path/to/your/ida  # in case of dir
+    python -m iottalkpy.dai /path/to/your/sa# in case of dir
 
 
 API
@@ -42,11 +42,11 @@ If you want to operate DAI via Python API:
 
     from iottalkpy import dai
 
-    ida = dai.module_to_ida(dai.load_module('/path/to/ida.py'))
-    ida.start()
+    sa = dai.module_to_sa(dai.load_module('/path/to/sa.py'))
+    sa.start()
     ...
-    # stop ida process
-    ida.terminate()
+    # stop sa process
+    sa.terminate()
 
 
 Usage of DAN module
