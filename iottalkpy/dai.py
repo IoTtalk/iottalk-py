@@ -220,7 +220,7 @@ class DAI(Process):
         return super(DAI, self).terminate(*args, **kwargs)
 
 
-def parse_df_profile(ida, typ):
+def parse_df_profile(sa, typ):
     def f(p):
         if isinstance(p, str):
             df_name, param_type = p, None
@@ -231,20 +231,20 @@ def parse_df_profile(ida, typ):
                 'Invalid `{}_list`, usage: [df_name, ...] '
                 'or [(df_name, type), ...]'.format(typ))
 
-        on_data = push_data = getattr(ida, DAI.df_func_name(df_name), None)
+        on_data = push_data = getattr(sa, DAI.df_func_name(df_name), None)
 
         df = DeviceFeature(
             df_name=df_name, df_type=typ, param_type=param_type,
             push_data=push_data, on_data=on_data)
         return df_name, df
 
-    profiles = getattr(ida, '{}_list'.format(typ), [])
+    profiles = getattr(sa, '{}_list'.format(typ), [])
     return dict(map(f, profiles))
 
 
-def module_to_ida(ida):
+def module_to_sa(sa):
     kwargs = {
-        k: getattr(ida, k, d)
+        k: getattr(sa, k, d)
         for k, d in [
             ('api_url', None),
             ('device_model', None),
@@ -266,8 +266,8 @@ def module_to_ida(ida):
         ]
     }
     kwargs['device_features'] = dict(
-        parse_df_profile(ida, 'idf'),
-        **parse_df_profile(ida, 'odf'))
+        parse_df_profile(sa, 'idf'),
+        **parse_df_profile(sa, 'odf'))
 
     return DAI(**kwargs)
 
@@ -277,32 +277,32 @@ def load_module(fname):
         if fname.endswith('.py'):
             # https://stackoverflow.com/a/67692
             if sys.version_info >= (3, 5):
-                spec = importlib.util.spec_from_file_location('ida', fname)
-                ida = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(ida)
+                spec = importlib.util.spec_from_file_location('sa', fname)
+                sa = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(sa)
             else:  # case of python 3.4
                 # this import only for python 3.4-
                 from importlib.machinery import SourceFileLoader
-                ida = SourceFileLoader('ida', fname).load_module()
+                sa = SourceFileLoader('sa', fname).load_module()
         else:
             fname = os.path.normpath(fname)
             m = fname[1:] if fname.startswith('/') else fname
 
-            # mapping ``my/path/ida`` to ``my.path.ida``
+            # mapping ``my/path/sa`` to ``my.path.sa``
             m = '.'.join(m.split(os.path.sep))
 
             # well, seems we need to hack sys.path
             if fname.startswith('/'):
                 with cd('/'):
                     sys.path.append(os.getcwd())
-                    ida = importlib.import_module(m, )
+                    sa = importlib.import_module(m, )
             else:
                 sys.path.append(os.getcwd())
-                ida = importlib.import_module(m)
+                sa = importlib.import_module(m)
 
             sys.path.pop()
 
-        return ida
+        return sa
     else:  # in case of python 2, only single file is supported
         if os.path.isdir(fname):
             raise RuntimeError(
@@ -325,4 +325,4 @@ def main(dai):
 
 
 if __name__ == '__main__':
-    main(module_to_ida(load_module(sys.argv[1] if len(sys.argv) > 1 else 'ida')))
+    main(module_to_sa(load_module(sys.argv[1] if len(sys.argv) > 1 else 'sa')))
