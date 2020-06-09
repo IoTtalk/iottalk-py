@@ -88,8 +88,8 @@ Release steps
 #. Bump version and commit
 
 #. ``git-tag`` the version
-   #. Versioning rule: ``<major>.<minor>.<patch>``
-   #. The major and minor verion number should be the same as IoTtalk server.
+    #. Versioning rule: ``<major>.<minor>.<patch>``
+    #. The major and minor verion number should be the same as IoTtalk server.
 
 #. ``git push --tags``
 
