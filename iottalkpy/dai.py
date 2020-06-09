@@ -288,14 +288,21 @@ def load_module(fname):
                 sa = SourceFileLoader('sa', fname).load_module()
         else:
             fname = os.path.normpath(fname)
-            m = fname[1:] if fname.startswith('/') else fname
+
+            if os.path.isabs(fname) and platform.system() == 'Windows':
+                rootdir, m = os.path.splitdrive(m)
+            elif os.path.isabs(fname):
+                rootdir, m = '/', fname[1:]
+            else:
+                rootdir, m = None, fname
+            # m = fname[1:] if fname.startswith('/') else fname
 
             # mapping ``my/path/sa`` to ``my.path.sa``
             m = '.'.join(m.split(os.path.sep))
 
             # well, seems we need to hack sys.path
-            if fname.startswith('/'):
-                with cd('/'):
+            if rootdir:
+                with cd(rootdir):
                     sys.path.append(os.getcwd())
                     sa = importlib.import_module(m)
             else:
