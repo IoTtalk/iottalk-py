@@ -20,3 +20,9 @@ build: off
 test_script:
   - cmd: "%PYTHON%\\python.exe --version"
   - cmd: "%PYTHON%\\python.exe -m pytest"
+
+notifications:
+  - provider: Email
+    on_build_success: false
+    on_build_failure: false
+    on_build_status_changed: false
