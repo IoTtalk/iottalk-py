@@ -291,6 +291,8 @@ def load_module(fname):
 
             if os.path.isabs(fname) and platform.system() == 'Windows':
                 rootdir, m = os.path.splitdrive(fname)
+                rootdir = '{}\\'.format(rootdir)
+                m = m[1:]
             elif os.path.isabs(fname) and platform.system() != 'Windows':
                 rootdir, m = '/', fname[1:]
             else:
