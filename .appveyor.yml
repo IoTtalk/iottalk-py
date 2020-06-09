@@ -1,0 +1,9 @@
+image:
+  - Visual Studio 2019
+
+install:
+  - pip install -e .
+  - pip install pytest
+
+test_script:
+  - py.test
