@@ -277,7 +277,7 @@ def module_to_sa(sa):
 def load_module(fname):
     if sys.version_info.major > 2:  # python 3+
         fname = os.path.normpath(fname)
-        fname = fname[:3] if fname.endswith('.py') else fname
+        fname = fname[:-3] if fname.endswith('.py') else fname
         m = fname[1:] if fname.startswith('/') else fname
 
         # mapping ``my/path/sa`` to ``my.path.sa``
