@@ -1,6 +1,14 @@
 image:
   - Visual Studio 2019
 
+environment:
+  matrix:
+  - PYVER: 2.7
+  - PYVER: 3.5
+  - PYVER: 3.6
+  - PYVER: 3.7
+
+
 install:
   - pip install -e .
   - pip install pytest
@@ -8,4 +16,6 @@ install:
 build: off
 
 test_script:
+  - python3.7 --version
+  - python${PYVER} --version
   - py.test
