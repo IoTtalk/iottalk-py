@@ -3,11 +3,12 @@ image:
 
 environment:
   matrix:
-  - PYVER: 2.7
-  - PYVER: 3.5
-  - PYVER: 3.6
-  - PYVER: 3.7
-
+    - PYTHON: "C:\\Python27"
+    - PYTHON: "C:\\Python34"
+    - PYTHON: "C:\\Python35"
+    - PYTHON: "C:\\Python36"
+    - PYTHON: "C:\\Python37"
+    - PYTHON: "C:\\Python38"
 
 install:
   - pip install -e .
@@ -16,6 +17,5 @@ install:
 build: off
 
 test_script:
-  - python3.7 --version
-  - python${PYVER} --version
+  - python --version
   - py.test
