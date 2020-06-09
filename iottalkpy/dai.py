@@ -276,23 +276,33 @@ def module_to_sa(sa):
 
 def load_module(fname):
     if sys.version_info.major > 2:  # python 3+
-        fname = os.path.normpath(fname)
-        fname = fname[:-3] if fname.endswith('.py') else fname
-        m = fname[1:] if fname.startswith('/') else fname
+        if fname.endswith('.py'):
+            # https://stackoverflow.com/a/67692
+            if sys.version_info >= (3, 5):
+                spec = importlib.util.spec_from_file_location('sa', fname)
+                sa = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(sa)
+            else:  # case of python 3.4
+                # this import only for python 3.4-
+                from importlib.machinery import SourceFileLoader
+                sa = SourceFileLoader('sa', fname).load_module()
+        else:
+            fname = os.path.normpath(fname)
+            m = fname[1:] if fname.startswith('/') else fname
 
-        # mapping ``my/path/sa`` to ``my.path.sa``
-        m = '.'.join(m.split(os.path.sep))
+            # mapping ``my/path/sa`` to ``my.path.sa``
+            m = '.'.join(m.split(os.path.sep))
 
-        # well, seems we need to hack sys.path
-        if fname.startswith('/'):
-            with cd('/'):
+            # well, seems we need to hack sys.path
+            if fname.startswith('/'):
+                with cd('/'):
+                    sys.path.append(os.getcwd())
+                    sa = importlib.import_module(m)
+            else:
                 sys.path.append(os.getcwd())
                 sa = importlib.import_module(m)
-        else:
-            sys.path.append(os.getcwd())
-            sa = importlib.import_module(m)
 
-        sys.path.pop()
+            sys.path.pop()
 
         return sa
     else:  # in case of python 2, only single file is supported
