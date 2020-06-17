@@ -7,9 +7,9 @@ python:
   - "3.7"
   - "3.8"
 install:
-  - pip install -e .
-  - pip install codecov
-  - pip install pytest pytest-cov~=2.8
+  - pip install --no-cache-dir -e .
+  - pip install --no-cache-dir codecov
+  - pip install --no-cache-dir pytest pytest-cov~=2.8
 script:
   - pytest --cov=iottalkpy/
 after_success:
