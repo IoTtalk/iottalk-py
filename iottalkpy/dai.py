@@ -37,8 +37,10 @@ class DAI(Process):
                  push_interval=1, interval=None, device_features=None):
         super(DAI, self).__init__()
 
-        self._manager = Manager()
-        self._event = self._manager.Event()  # create Event proxy object at main process
+        # Do not make the ``Manager`` object as an attribute of DAI object,
+        # since the attribute in DAI need to be picklable on Windows.
+        # The underlying implementation of multiprocessing requires that.
+        self._event = Manager().Event()  # create Event proxy object at main process
 
         self.api_url = api_url
         self.device_model = device_model
@@ -274,33 +276,33 @@ def module_to_sa(sa):
 
 def load_module(fname):
     if sys.version_info.major > 2:  # python 3+
-        if fname.endswith('.py'):
-            # https://stackoverflow.com/a/67692
-            if sys.version_info >= (3, 5):
-                spec = importlib.util.spec_from_file_location('sa', fname)
-                sa = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(sa)
-            else:  # case of python 3.4
-                # this import only for python 3.4-
-                from importlib.machinery import SourceFileLoader
-                sa = SourceFileLoader('sa', fname).load_module()
-        else:
-            fname = os.path.normpath(fname)
-            m = fname[1:] if fname.startswith('/') else fname
+        fname = os.path.normpath(fname)
 
+        if os.path.isabs(fname) and platform.system() == 'Windows':
+            rootdir, m = os.path.splitdrive(fname)
+            rootdir = '{}\\'.format(rootdir)
+            m = m[1:]
+        elif os.path.isabs(fname) and platform.system() != 'Windows':
+            rootdir, m = '/', fname[1:]
+        else:
+            rootdir, m = None, fname
+
+        if fname.endswith('.py'):
+            rootdir, m = os.path.split(fname[:-3])
+        else:
             # mapping ``my/path/sa`` to ``my.path.sa``
             m = '.'.join(m.split(os.path.sep))
 
-            # well, seems we need to hack sys.path
-            if fname.startswith('/'):
-                with cd('/'):
-                    sys.path.append(os.getcwd())
-                    sa = importlib.import_module(m, )
-            else:
+        # well, seems we need to hack sys.path
+        if rootdir:
+            with cd(rootdir):
                 sys.path.append(os.getcwd())
                 sa = importlib.import_module(m)
+        else:
+            sys.path.append(os.getcwd())
+            sa = importlib.import_module(m)
 
-            sys.path.pop()
+        sys.path.pop()
 
         return sa
     else:  # in case of python 2, only single file is supported
