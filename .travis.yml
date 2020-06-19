@@ -9,7 +9,8 @@ python:
 install:
   - pip install --no-cache-dir -e .
   - pip install --no-cache-dir codecov
-  - pip install --no-cache-dir pytest pytest-cov~=2.8
+  - pip install --no-cache-dir pytest-cov~=2.8
+  - pip install pytest
 script:
   - pytest --cov=iottalkpy/
 after_success:
