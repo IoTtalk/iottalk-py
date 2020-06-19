@@ -10,7 +10,7 @@ install:
   - pip install --no-cache-dir -e .
   - pip install --no-cache-dir codecov
   - pip install --no-cache-dir pytest-cov~=2.8
-  - pip install pytest
+  - pip install --no-cache-dir pytest
 script:
   - pytest --cov=iottalkpy/
 after_success:
