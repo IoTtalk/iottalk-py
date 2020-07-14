@@ -6,6 +6,7 @@ import re
 import signal
 import sys
 import time
+import traceback
 
 from multiprocessing import Process, Manager
 from threading import Thread, Event
@@ -95,7 +96,11 @@ class DAI(Process):
         return True
 
     def on_data(self, df_name, data):
-        self.device_features[df_name].on_data(data)
+        try:
+            self.device_features[df_name].on_data(data)
+        except:
+            traceback.print_exc()
+            return False
         return True
 
     @staticmethod
