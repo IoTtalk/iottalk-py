@@ -6,6 +6,8 @@ import tempfile
 import pytest
 
 from iottalkpy.dai import load_module
+from iottalkpy.dai import parse_df_profile
+from iottalkpy.dan import RegistrationError
 
 dai_path_cases = [
     ('abs', 'py'),
@@ -24,6 +26,11 @@ dai_path_cases = [
             reason='Not supported in Python2'
         )
     )
+]
+sa_profile_cases = [
+    ('sa', 'str'),
+    ('sa', 'tuple', 'len=2'),
+    ('RegistrationError',)
 ]
 
 
@@ -76,6 +83,31 @@ def dai_path_nonexists(request):
         yield 'nondir/nonfile.py'
 
 
+@pytest.fixture
+def sa_profile(request):
+    dir_ = tempfile.mkdtemp(prefix='iottalkpy')
+    dir_ = os.path.abspath(dir_)
+
+    if request.param == ('sa', 'str'):
+        content = '\n'.join([
+            "idf_list = ['Dummy_Sensor']",
+            "odf_list = ['Dummy_Control']"])
+    elif request.param == ('sa', 'tuple', 'len=2',):
+        content = '\n'.join([
+            "idf_list = [('Dummy_Sensor', 'type',)]",
+            "odf_list = [('Dummy_Control', 'type',)]"])
+    else:
+        content = '\n'.join([
+            "idf_list = [1, 2, 3,]",
+            "odf_list = [10,]"])
+
+    with tempfile.NamedTemporaryFile(suffix='.py', dir=dir_, delete=False) as f:
+        f.write(content.encode())
+    yield load_module(f.name)
+
+    shutil.rmtree(dir_)
+
+
 @pytest.mark.parametrize('dai_path', dai_path_cases, indirect=True)
 def test_load_module(dai_path):
     m = load_module(dai_path)
@@ -92,3 +124,21 @@ def test_load_module(dai_path):
 def test_load_module_nonexists(dai_path_nonexists):
     with pytest.raises(Exception):
         load_module(dai_path_nonexists)
+
+
+@pytest.mark.parametrize('sa_profile', sa_profile_cases[:2], indirect=True)
+def test_parse_df_profile(sa_profile):
+    idf = parse_df_profile(sa_profile, 'idf')
+    odf = parse_df_profile(sa_profile, 'odf')
+    assert idf
+    assert odf
+    assert idf['Dummy_Sensor'].df_type == 'idf'
+    assert odf['Dummy_Control'].df_type == 'odf'
+
+
+@pytest.mark.parametrize('sa_profile', sa_profile_cases[-1], indirect=True)
+def test_parse_df_profile_RegistrationError(sa_profile):
+    with pytest.raises(RegistrationError):
+        parse_df_profile(sa_profile, 'idf')
+    with pytest.raises(RegistrationError):
+        parse_df_profile(sa_profile, 'odf')

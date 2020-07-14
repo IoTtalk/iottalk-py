@@ -1,0 +1,28 @@
+image:
+  - Visual Studio 2019
+
+environment:
+  matrix:
+    - PYTHON: "C:\\Python27"
+    - PYTHON: "C:\\Python34"
+    - PYTHON: "C:\\Python35"
+    - PYTHON: "C:\\Python36"
+    - PYTHON: "C:\\Python37"
+    - PYTHON: "C:\\Python38"
+
+install:
+  - cmd: "%PYTHON%\\python.exe -m pip install -U wheel pip"
+  - cmd: "%PYTHON%\\python.exe -m pip install -e ."
+  - cmd: "%PYTHON%\\python.exe -m pip install pytest"
+
+build: off
+
+test_script:
+  - cmd: "%PYTHON%\\python.exe --version"
+  - cmd: "%PYTHON%\\python.exe -m pytest"
+
+notifications:
+  - provider: Email
+    on_build_success: false
+    on_build_failure: false
+    on_build_status_changed: false

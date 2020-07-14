@@ -45,6 +45,8 @@ setup(
     packages=find_packages(exclude=['tests']),
     install_requires=get_requires(),
     tests_require=get_test_requires(),
+    long_description=open(os.path.join(BASE_DIR, 'README.rst')).read(),
+    long_description_content_type='text/x-rst',
     platforms=['Linux', 'FreeBSD'],
     classifiers=[
         'Development Status :: 3 - Alpha',

@@ -26,11 +26,27 @@ Usage of DAI module
 There is a executable DAI module. User can invoke it via the command line
 interface.::
 
-    python -m iottalkpy.dai /path/to/your/ida.py
+    python -m iottalkpy.dai /path/to/your/sa.py
 
 or::
 
-    python -m iottalkpy.dai /path/to/your/ida  # in case of dir
+    python -m iottalkpy.dai /path/to/your/sa  # in case of dir
+
+
+API
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+If you want to operate DAI via Python API:
+
+.. code-block:: python
+
+    from iottalkpy import dai
+
+    sa = dai.module_to_sa(dai.load_module('/path/to/sa.py'))
+    sa.start()
+    ...
+    # stop sa process
+    sa.terminate()
 
 
 Usage of DAN module
@@ -72,6 +88,8 @@ Release steps
 #. Bump version and commit
 
 #. ``git-tag`` the version
+    #. Versioning rule: ``<major>.<minor>.<patch>``
+    #. The major and minor verion number should be the same as IoTtalk server.
 
 #. ``git push --tags``
 

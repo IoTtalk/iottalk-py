@@ -1,7 +1,7 @@
 '''
-This module wraps the mqtt API into IoTtalk client API
+This module wraps the mqtt API into IoTtalk client API.
 
-If your process contain sigle Device,
+If your process contain single Device,
 you can use::
 
     from iottalkpy import dan
@@ -35,6 +35,7 @@ from paho.mqtt import client as mqtt
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 
 from iottalkpy.color import DANColor
+from iottalkpy.exceptions import RegistrationError
 
 # python2 compatibility
 try:
@@ -56,11 +57,19 @@ class NoData():
 
 
 class DeviceFeature(object):
-    def __init__(self, df_name, df_type=None):
-        self._df_name = df_name
-        self._df_type = df_type if df_type is not None else [None]
-        self._push_data = None
+    def __init__(self, df_name, df_type, param_type=None, push_data=None,
+                 on_data=None):
+        self.df_name = df_name
+        self.df_type = df_type  # idf | odf
+        self.param_type = param_type if param_type is not None else [None]
+
         self._on_data = None
+        if df_type == 'odf' and on_data:
+            self.on_data = on_data
+
+        self._push_data = None
+        if df_type == 'idf' and push_data:
+            self.push_data = push_data
 
     @property
     def df_name(self):
@@ -76,7 +85,18 @@ class DeviceFeature(object):
 
     @df_type.setter
     def df_type(self, value):
+        if value not in ['idf', 'odf']:
+            msg = '<{df_name}>: df_type must be "idf" or "odf"'.format(df_name=self.df_name)
+            raise RegistrationError(msg)
         self._df_type = value
+
+    @property
+    def param_type(self):
+        return self._param_type
+
+    @param_type.setter
+    def param_type(self, value):
+        self._param_type = value
 
     @property
     def on_data(self):
@@ -101,7 +121,7 @@ class DeviceFeature(object):
         self._push_data = value
 
     def profile(self):
-        return (self.df_name, self.df_type)
+        return (self.df_name, self.param_type)
 
 
 class ChannelPool(dict):
@@ -146,18 +166,6 @@ class Context(object):
         )
 
 
-class RegistrationError(Exception):
-    pass
-
-
-class ApplicationNotFoundError(Exception):
-    pass
-
-
-class AttributeNotFoundError(Exception):
-    pass
-
-
 def _invalid_url(url):
     ''' Check if the url is a valid url
     # This method should be refined
@@ -186,6 +194,7 @@ class Client:
 
             res, _ = client.subscribe(self.context.o_chans['ctrl'], qos=2)
             if res != MQTT_ERR_SUCCESS:
+                #FIXME: use proper exception type
                 raise Exception('Subscribe to control channel failed')
 
         else:  # in case of reconnecting, we need to renew all subscriptions
@@ -284,7 +293,10 @@ class Client:
         client.disconnect()
 
     def _on_disconnect(self, client, userdata, rc):
-        log.info('Disconnect to %s.', DANColor.wrap(DANColor.data, self.context.url))
+        log.info('%s (%s) disconnected from  %s.',
+                 DANColor.wrap(DANColor.data, self.context.name),
+                 DANColor.wrap(DANColor.data, self.context.app_id),
+                 DANColor.wrap(DANColor.data, self.context.url))
         if hasattr(self, '_disconn_lock'):  # we won't have it if reconnecting
             self._disconn_lock.release()
 
@@ -411,6 +423,7 @@ class Client:
         ctx.mqtt_client.on_connect = self._on_connect
         ctx.mqtt_client.on_disconnect = self._on_disconnect
 
+        ctx.mqtt_client.enable_logger(log)
         ctx.mqtt_client.will_set(
             self.context.i_chans['ctrl'],
             json.dumps({'state': 'offline', 'rev': rev}),
