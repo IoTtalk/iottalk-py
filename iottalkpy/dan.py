@@ -223,7 +223,7 @@ class Client:
         self._is_reconnect = True
 
         if self.context.on_connect:
-            self.context.on_connect()
+            self.context.on_connect(self)
 
     def _on_message(self, client, userdata, msg):
         if self.context.mqtt_client is not client:
@@ -301,7 +301,7 @@ class Client:
             self._disconn_lock.release()
 
         if self.context.on_disconnect:
-            self.context.on_disconnect()
+            self.context.on_disconnect(self)
 
     def register(self, url, on_signal, on_data,
                  id_=None, name=None,
@@ -448,7 +448,7 @@ class Client:
         log.debug('Online message published')
 
         if ctx.on_register:
-            ctx.on_register()
+            ctx.on_register(self)
 
         return ctx
 
@@ -499,7 +499,7 @@ class Client:
         ctx.mqtt_client = None
 
         if ctx.on_deregister:
-            ctx.on_deregister()
+            ctx.on_deregister(self)
 
         return response.json()
 
