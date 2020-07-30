@@ -6,7 +6,6 @@ from datetime import datetime
 import requests
 
 api_url = 'https://localhost/csm'  # default
-api_url = 'https://iottalk2.tw/csm'  # default
 device_name = 'Weather_DA'
 device_model = 'Weather'
 
@@ -19,17 +18,6 @@ odf_list = []
 # MIRC311 Hsinchu
 lat = '24.6742'
 lon = '121.1611'
-
-
-class func_thread:
-    def __init__(self, func, daemonlize):
-        self.f = threading.Thread(target=func, daemon=daemonlize)
-
-    def start(self):
-        self.f.start()
-
-    def stop(self):
-        self.f.stop()
 
 
 def on_register(dan):
@@ -92,8 +80,6 @@ def get_weather():
     while True:
         try:
             icon, condition = get_condition()
-            # condition =  weather_data['weather'][0]['main']
-            # condition =  weather_data['weather'][0]['description']
             print(datetime.now().isoformat(),
                   ' icon = {}, weather updated,'
                   ' condition = {}'.format(icon, condition))
@@ -104,5 +90,5 @@ def get_weather():
         time.sleep(600)
 
 
-t1 = func_thread(get_weather, True)
-t2 = func_thread(push_weather, True)
+t1 = threading.Thread(target=get_weather, daemon=True)
+t2 = threading.Thread(target=push_weather, daemon=True)
