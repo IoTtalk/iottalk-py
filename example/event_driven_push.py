@@ -20,7 +20,28 @@ lat = '24.6742'
 lon = '121.1611'
 
 
+class func_thread:
+    dan = None
+
+    def __init__(self, func, daemonlize):
+        self.thread = threading.Thread(target=func, daemon=daemonlize)
+
+    def start(self):
+        if self.thread:
+            self.thread.start()
+
+    def stop(self):
+        if self.thread:
+            self.thread.stop()
+
+    def push(self, device_feature, data):
+        if self.dan:
+            self.dan.push(device_feature, data)
+
+
 def on_register(dan):
+    t1.dan = dan
+    t2.dan = dan
     t1.start()
     t2.start()
     print('[dai] register successfully')
@@ -68,6 +89,7 @@ def push_weather():
     for i in range(30):
         try:
             condition = get_condition()[1]
+            t2.push('Name-I', condition)
             print(datetime.now().isoformat(),
                   ' , weather condition = {}'.format(condition))
             time.sleep(2)
@@ -80,6 +102,7 @@ def get_weather():
     while True:
         try:
             icon, condition = get_condition()
+            t1.push('Name-I', condition)
             print(datetime.now().isoformat(),
                   ' icon = {}, weather updated,'
                   ' condition = {}'.format(icon, condition))
@@ -90,5 +113,5 @@ def get_weather():
         time.sleep(600)
 
 
-t1 = threading.Thread(target=get_weather, daemon=True)
-t2 = threading.Thread(target=push_weather, daemon=True)
+t1 = func_thread(func=get_weather, daemonlize=True)
+t2 = func_thread(func=push_weather, daemonlize=True)
