@@ -5,6 +5,7 @@ import tempfile
 
 import pytest
 
+from iottalkpy.dai import DAI
 from iottalkpy.dai import load_module
 from iottalkpy.dai import parse_df_profile
 from iottalkpy.dan import RegistrationError
@@ -31,6 +32,17 @@ sa_profile_cases = [
     ('sa', 'str'),
     ('sa', 'tuple', 'len=2'),
     ('RegistrationError',)
+]
+
+'''
+Each element in this list should be a tuple.
+The first element in a tuple is the device feature name,
+and the second element is the  corresponding function name.
+'''
+df_name_list = [
+    ('CO2-TI', 'CO2_TI'),
+    ('Switch-O1', 'Switch_O1'),
+    ('PumpWater-O', 'PumpWater_O')
 ]
 
 
@@ -142,3 +154,8 @@ def test_parse_df_profile_RegistrationError(sa_profile):
         parse_df_profile(sa_profile, 'idf')
     with pytest.raises(RegistrationError):
         parse_df_profile(sa_profile, 'odf')
+
+
+@pytest.mark.parametrize('df_name, df_function_name', df_name_list)
+def test_dai_df_func_name(df_name, df_function_name):
+    assert DAI.df_func_name(df_name) == df_function_name
