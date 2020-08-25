@@ -105,7 +105,7 @@ class DAI(Process):
 
     @staticmethod
     def df_func_name(df_name):
-        return re.sub(r'-(I|O)$', r'_\1', df_name)
+        return re.sub(r'-', r'_', df_name)
 
     def _check_parameter(self):
         if self.api_url is None:
