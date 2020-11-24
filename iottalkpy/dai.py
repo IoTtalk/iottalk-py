@@ -163,12 +163,12 @@ class DAI(Process):
             else:
                 odf_list.append(df.profile())
 
-        def f():
+        def f(*args, **kwargs):
             for key in self.flags:
                 self.flags[key] = False
             log.debug('on_disconnect: _flag = %s', str(self.flags))
             if self.on_disconnect:
-                return self.on_disconnect()
+                return self.on_disconnect(*args, **kwargs)
 
         self.dan.register(
             self.api_url,
