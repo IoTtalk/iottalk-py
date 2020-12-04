@@ -9,9 +9,9 @@ def lock():
     '''
     a lock useful for blocking
     '''
-    l = Lock()
-    l.acquire()
-    yield l
+    lock = Lock()
+    lock.acquire()
+    yield lock
 
 
 @pytest.fixture()
