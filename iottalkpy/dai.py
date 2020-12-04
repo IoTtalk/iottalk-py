@@ -7,7 +7,8 @@ import sys
 import time
 import traceback
 
-from multiprocessing import Process, Manager
+from multiprocessing import Event as multiprocessingEvent
+from multiprocessing import Process
 from threading import Thread, Event
 from uuid import UUID
 
@@ -25,6 +26,8 @@ try:  # Python 3 only
 except ImportError:
     pass
 
+terminate_event = multiprocessingEvent()
+
 
 class DAI(Process):
     daemon = True
@@ -37,10 +40,8 @@ class DAI(Process):
                  push_interval=1, interval=None, device_features=None):
         super(DAI, self).__init__()
 
-        # Do not make the ``Manager`` object as an attribute of DAI object,
-        # since the attribute in DAI need to be picklable on Windows.
-        # The underlying implementation of multiprocessing requires that.
-        self._event = Manager().Event()  # create Event proxy object at main process
+        # Use the Event object provided by the multiprocessing package
+        self._event = terminate_event
 
         self.api_url = api_url
         self.device_model = device_model
