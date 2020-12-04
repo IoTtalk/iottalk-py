@@ -143,13 +143,6 @@ class DAI(Process):
         except Exception as e:
             log.warning('dai process cleanup exception: %s', e)
 
-    def start(self, *args, **kwargs):
-        ret = super(DAI, self).start(*args, **kwargs)
-        # conduct deregistration properly,
-        # if one doesn't stop process before main process ends
-        atexit.register(self.terminate)
-        return ret
-
     def run(self):  # this function will be executed in child process
         self._check_parameter()
 
@@ -210,21 +203,6 @@ class DAI(Process):
                 Event().wait()
         except KeyboardInterrupt:
             self.join()  # wait for deregistration
-
-    def terminate(self, *args, **kwargs):
-        '''
-        Terminate DAI.
-
-        This is a blocking call.
-        '''
-        try:
-            self._event.set()
-        except Exception:
-            # this is triggered if the ``run`` function ended already.
-            pass
-
-        self.join()
-        return super(DAI, self).terminate(*args, **kwargs)
 
 
 def parse_df_profile(sa, typ):
