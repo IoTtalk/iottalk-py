@@ -8,10 +8,12 @@ python:
   - "3.8"
 install:
   - pip install --no-cache-dir -e .
+  - pip install -r dev-requirements.txt
   - pip install --no-cache-dir codecov
   - pip install --no-cache-dir pytest-cov~=2.8
   - pip install --no-cache-dir pytest
 script:
+  - flake8
   - pytest --cov=iottalkpy/
 after_success:
   - codecov
