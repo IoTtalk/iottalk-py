@@ -3,7 +3,6 @@ import logging
 import os.path
 import platform
 import re
-import signal
 import sys
 import time
 import traceback
@@ -98,7 +97,7 @@ class DAI(Process):
     def on_data(self, df_name, data):
         try:
             self.device_features[df_name].on_data(data)
-        except:
+        except Exception:
             traceback.print_exc()
             return False
         return True
@@ -127,9 +126,9 @@ class DAI(Process):
                     self.device_addr = None
 
         if self.persistent_binding and self.device_addr is None:
-                msg = ('In case of `persistent_binding` set to `True`, '
-                       'the `device_addr` should be set and fixed.')
-                raise ValueError(msg)
+            msg = ('In case of `persistent_binding` set to `True`, '
+                   'the `device_addr` should be set and fixed.')
+            raise ValueError(msg)
 
         if not self.device_features.keys():
             raise RegistrationError('Neither idf_list nor odf_list is empty.')

@@ -2,7 +2,6 @@ import json
 import pytest
 import requests
 
-from threading import Thread, Lock
 from time import sleep
 from uuid import UUID, uuid4
 
