@@ -144,6 +144,17 @@ class DAI(Process):
             log.warning('dai process cleanup exception: %s', e)
 
     def run(self):  # this function will be executed in child process
+        '''
+        Child process ignores the two signals listed below:
+
+        1. SIGINT
+        2. SIGTERM
+
+        The child process will be asked to terminate by the parent process,
+        so ignoring these signals prevents it from affecting by the signals.
+        '''
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
         self._check_parameter()
 
         self.dan = Client()
@@ -186,23 +197,12 @@ class DAI(Process):
         )
 
         log.info('Press Ctrl+C to exit DAI.')
-        try:
-            self._event.wait()
-        except KeyboardInterrupt:
-            pass
-        finally:
-            self.finalizer()
 
-    def wait(self):
-        try:
-            if platform.system() == 'Windows' or sys.version_info.major == 2:
-                # workaround for https://bugs.python.org/issue35935
-                while True:
-                    time.sleep(86400)
-            else:
-                Event().wait()
-        except KeyboardInterrupt:
-            self.join()  # wait for deregistration
+        # Wait the termination event
+        self._event.wait()
+
+        # Start the clean-up procedure
+        self.finalizer()
 
 
 def parse_df_profile(sa, typ):
@@ -304,9 +304,29 @@ def load_module(fname):
         return App(d)
 
 
+def signal_handler(signal_number, _):
+    log.warning('Received signal: %s', signal_number)
+    '''
+    Set the termination event so the child process will start
+    the termination process.
+    '''
+    terminate_event.set()
+
+
 def main(dai):
+    '''
+    Add the signal handler for the two signals listed below:
+
+    1. SIGINT
+    2. SIGTERM
+
+    According to the documentation, both of the signals are available on
+    both of the Unix-like and the Windows platforms.
+    '''
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     dai.start()
-    dai.wait()
+    dai.join()
 
 
 if __name__ == '__main__':
