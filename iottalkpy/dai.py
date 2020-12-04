@@ -74,9 +74,9 @@ class DAI(Process):
                 self.dan.push(df_name, _data)
             time.sleep(self.interval.get(df_name, self.push_interval))
 
-    def on_signal(self, signal, df_list):
-        log.info('Receive signal: \033[1;33m%s\033[0m, %s', signal, df_list)
-        if 'CONNECT' == signal:
+    def on_signal(self, signal_, df_list):
+        log.info('Receive signal: \033[1;33m%s\033[0m, %s', signal_, df_list)
+        if 'CONNECT' == signal_:
             for df_name in df_list:
                 # race condition
                 if not self.flags.get(df_name):
@@ -84,13 +84,13 @@ class DAI(Process):
                     t = Thread(target=self.push_data, args=(df_name,))
                     t.daemon = True
                     t.start()
-        elif 'DISCONNECT' == signal:
+        elif 'DISCONNECT' == signal_:
             for df_name in df_list:
                 self.flags[df_name] = False
-        elif 'SUSPEND' == signal:
+        elif 'SUSPEND' == signal_:
             # Not use
             pass
-        elif 'RESUME' == signal:
+        elif 'RESUME' == signal_:
             # Not use
             pass
         return True
