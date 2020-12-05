@@ -83,6 +83,16 @@ Minimal example:
 Developer Notes
 ----------------------------------------------------------------------
 
+Development steps
+
+#. Install this package and the development requirements
+
+.. code-block:: shell
+
+  pip install -e .
+  pip install -r dev-requirements.txt
+
+
 Release steps
 
 #. Bump version and commit

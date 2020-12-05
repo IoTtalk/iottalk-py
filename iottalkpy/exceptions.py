@@ -10,4 +10,3 @@ class ApplicationNotFoundError(Exception):
 
 class AttributeNotFoundError(Exception):
     pass
-

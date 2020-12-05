@@ -194,7 +194,7 @@ class Client:
 
             res, _ = client.subscribe(self.context.o_chans['ctrl'], qos=2)
             if res != MQTT_ERR_SUCCESS:
-                #FIXME: use proper exception type
+                # FIXME: use proper exception type
                 raise Exception('Subscribe to control channel failed')
 
         else:  # in case of reconnecting, we need to renew all subscriptions
@@ -206,8 +206,10 @@ class Client:
                 qos=2
             )
             for k, topic in self.context.o_chans.items():
-                log.info('Renew subscriptions for %s -> %s',
-                         DANColor.wrap(DANColor.data, k), DANColor.wrap(DANColor.data, topic))
+                log.info(
+                    'Renew subscriptions for %s -> %s',
+                    DANColor.wrap(DANColor.data, k), DANColor.wrap(DANColor.data, topic)
+                )
                 client.subscribe(topic, qos=2)
             # FIXME: online msg may reach eariler then offline, race condition
             time.sleep(1)
