@@ -8,7 +8,7 @@ import traceback
 
 from multiprocessing import Event as multiprocessingEvent
 from multiprocessing import Process
-from threading import Thread, Event
+from threading import Thread
 from uuid import UUID
 
 from iottalkpy.color import DAIColor
