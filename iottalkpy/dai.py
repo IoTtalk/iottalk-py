@@ -2,13 +2,14 @@ import logging
 import os.path
 import platform
 import re
+import signal
 import sys
 import time
 import traceback
 
 from multiprocessing import Event as multiprocessingEvent
 from multiprocessing import Process
-from threading import Thread, Event
+from threading import Thread
 from uuid import UUID
 
 from iottalkpy.color import DAIColor
@@ -144,14 +145,17 @@ class DAI(Process):
 
     def run(self):  # this function will be executed in child process
         '''
-        Child process ignores the two signals listed below:
+        Child process ignores the signals listed below:
 
         1. SIGINT
         2. SIGTERM
+        3. SIGBREAK (Only available on the Windows platform)
 
         The child process will be asked to terminate by the parent process,
         so ignoring these signals prevents it from affecting by the signals.
         '''
+        if sys.platform.startswith('win'):
+            signal.signal(signal.SIGBREAK, signal.SIG_IGN)
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         self._check_parameter()
@@ -195,7 +199,10 @@ class DAI(Process):
             on_disconnect=f
         )
 
-        log.info('Press Ctrl+C to exit DAI.')
+        if sys.platform.startswith('win'):
+            log.info('Press Ctrl+C or Ctrl+BREAK to exit DAI.')
+        else:
+            log.info('Press Ctrl+C to exit DAI.')
 
         # Wait the termination event
         self._event.wait()
@@ -314,18 +321,43 @@ def signal_handler(signal_number, _):
 
 def main(dai):
     '''
-    Add the signal handler for the two signals listed below:
+    Add the signal handler for the signals listed below:
 
     1. SIGINT
     2. SIGTERM
+    3. SIGBREAK (Only available on the Windows platform)
 
-    According to the documentation, both of the signals are available on
-    both of the Unix-like and the Windows platforms.
+    According to the documentation, the former two signals are available on
+    both of the Unix-like and the Windows platforms. The SIGBREAK is only available
+    on the Windows platform, this signal can be emitted by pressing CTRL plus BREAK.
+
+    Ref:
+    1. https://docs.microsoft.com/en-us/windows/console/ctrl-c-and-ctrl-break-signals
+    2. https://docs.python.org/3/library/signal.html
     '''
+    if sys.platform.startswith('win'):
+        signal.signal(signal.SIGBREAK, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     dai.start()
-    dai.join()
+
+    if sys.platform.startswith('win'):
+        '''
+        Since the underlying implementation of multiprocessing.Process.join does not use
+        alertable waits on the Windows platform, directly calling join causes the signal
+        handler will not be executed when the signal arrives.
+        A doable way adopted here is periodically sleeping, joining the subprocess
+        (timeout is set to 1 second) and then checking the exitcode of the subprocess
+        until it actually exits.
+
+        Ref:
+        1. https://stackoverflow.com/questions/43092371/ignore-sigint-in-python-multiprocessing-subprocess  # noqa: E501
+        '''
+        while dai.exitcode is None:
+            time.sleep(1)
+            dai.join(1)
+    else:
+        dai.join()
 
 
 if __name__ == '__main__':
