@@ -7,7 +7,7 @@ import sys
 import time
 import traceback
 
-from multiprocessing import Event as multiprocessingEvent
+from multiprocessing import Event as MultiprocessingEvent
 from multiprocessing import Process
 from threading import Thread
 from uuid import UUID
@@ -26,7 +26,7 @@ try:  # Python 3 only
 except ImportError:
     pass
 
-terminate_event = multiprocessingEvent()
+terminate_event = MultiprocessingEvent()
 
 
 class DAI(Process):
