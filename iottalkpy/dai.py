@@ -351,7 +351,7 @@ def main(dai):
         until it actually exits.
 
         Ref:
-        1. https://stackoverflow.com/questions/43092371/ignore-sigint-in-python-multiprocessing-subprocess  # noqa: E501
+        1. https://stackoverflow.com/a/43095532/8997651
         '''
         while dai.exitcode is None:
             time.sleep(1)
