@@ -147,6 +147,8 @@ class Context(object):
         self.name = None
         self.mqtt_host = None
         self.mqtt_port = None
+        self.mqtt_username = None
+        self.mqtt_password = None
         self.mqtt_client = None
         self.i_chans = ChannelPool()
         self.o_chans = ChannelPool()
@@ -417,6 +419,8 @@ class Client:
         ctx.name = metadata['name']
         ctx.mqtt_host = metadata['url']['host']
         ctx.mqtt_port = metadata['url']['port']
+        ctx.mqtt_username = metadata.get('username', '')
+        ctx.mqtt_password = metadata.get('password', '')
         ctx.i_chans['ctrl'] = metadata['ctrl_chans'][0]
         ctx.o_chans['ctrl'] = metadata['ctrl_chans'][1]
         ctx.rev = rev = metadata['rev']
@@ -424,6 +428,10 @@ class Client:
         ctx.mqtt_client.on_message = self._on_message
         ctx.mqtt_client.on_connect = self._on_connect
         ctx.mqtt_client.on_disconnect = self._on_disconnect
+
+        # Set the username and the password for the authentication
+        if ctx.mqtt_username:
+            ctx.mqtt_client.username_pw_set(ctx.mqtt_username, ctx.mqtt_password)
 
         ctx.mqtt_client.enable_logger(log)
         ctx.mqtt_client.will_set(
