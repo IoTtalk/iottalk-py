@@ -134,7 +134,7 @@ class DAI(Process):
         if not self.device_features.keys():
             raise RegistrationError('Neither idf_list nor odf_list is empty.')
 
-        if type(self.profile) is not dict:
+        if isinstance(self.profile, dict):
             raise RegistrationError('profile must be a dict')
 
         return True
