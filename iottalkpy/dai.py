@@ -31,7 +31,7 @@ class DAI(Process):
 
     def __init__(self, api_url, device_model, device_addr=None,
                  device_name=None, persistent_binding=False, username=None,
-                 extra_setup_webpage='', device_webpage='',
+                 extra_setup_webpage='', device_webpage='', profile={},
                  register_callback=None, on_register=None, on_deregister=None,
                  on_connect=None, on_disconnect=None,
                  push_interval=1, interval=None, device_features=None):
@@ -50,6 +50,7 @@ class DAI(Process):
         self.username = username
         self.extra_setup_webpage = extra_setup_webpage
         self.device_webpage = device_webpage
+        self.profile = profile
 
         self.register_callback = register_callback
         self.on_register = on_register
@@ -133,6 +134,9 @@ class DAI(Process):
         if not self.device_features.keys():
             raise RegistrationError('Neither idf_list nor odf_list is empty.')
 
+        if type(self.profile) is not dic:
+            raise RegistrationError('profile must be a dict')
+
         return True
 
     def finalizer(self):
@@ -169,6 +173,13 @@ class DAI(Process):
             if self.on_disconnect:
                 return self.on_disconnect(*args, **kwargs)
 
+        self.profile.update({
+            'model': self.device_model,
+            'u_name': self.username,
+            'extra_setup_webpage': self.extra_setup_webpage,
+            'device_webpage': self.device_webpage,
+        })
+
         self.dan.register(
             self.api_url,
             on_signal=self.on_signal,
@@ -178,12 +189,7 @@ class DAI(Process):
             idf_list=idf_list,
             odf_list=odf_list,
             name=self.device_name,
-            profile={
-                'model': self.device_model,
-                'u_name': self.username,
-                'extra_setup_webpage': self.extra_setup_webpage,
-                'device_webpage': self.device_webpage,
-            },
+            profile=self.profile,
             register_callback=self.register_callback,
             on_register=self.on_register,
             on_deregister=self.on_deregister,
@@ -262,6 +268,7 @@ def module_to_sa(sa):
             ('device_webpage', ''),
             ('push_interval', 1),
             ('interval', {}),
+            ('profile', {}),
 
             # callbacks
             ('register_callback', None),
