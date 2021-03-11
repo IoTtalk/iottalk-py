@@ -64,6 +64,10 @@ class DAI(Process):
         self.device_features = device_features if device_features else {}
         self.flags = {}
 
+    def _get_interval(self, df_name):
+        interval = self.interval.get(df_name, self.push_interval)
+        return interval() if callable(interval) else interval
+
     def push_data(self, df_name):
         if not self.device_features[df_name].push_data:
             return
@@ -72,7 +76,7 @@ class DAI(Process):
             _data = self.device_features[df_name].push_data()
             if not isinstance(_data, NoData) and _data is not NoData:
                 self.dan.push(df_name, _data)
-            time.sleep(self.interval.get(df_name, self.push_interval))
+            time.sleep(self._get_interval(df_name))
 
     def on_signal(self, signal, df_list):
         log.info('Receive signal: \033[1;33m%s\033[0m, %s', signal, df_list)
