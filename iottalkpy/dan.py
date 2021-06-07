@@ -443,7 +443,7 @@ class Client:
         # Enable TLS support if the received scheme is mqtts.
         #
         # Ref: https://github.com/eclipse/paho.mqtt.python#tls_set
-        if str(metadata.get('url', {}).get('scheme', '')).lower() == 'mqtts':
+        if metadata['url']['scheme'].lower() == 'mqtts':
             ctx.mqtt_client.tls_set()
 
         ctx.mqtt_client.connect(
