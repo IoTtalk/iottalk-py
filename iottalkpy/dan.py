@@ -439,6 +439,13 @@ class Client:
             json.dumps({'state': 'offline', 'rev': rev}),
             retain=True,
         )
+
+        # Enable TLS support if the received scheme is mqtts.
+        #
+        # Ref: https://github.com/eclipse/paho.mqtt.python#tls_set
+        if metadata['url']['scheme'].lower() == 'mqtts':
+            ctx.mqtt_client.tls_set()
+
         ctx.mqtt_client.connect(
             self.context.mqtt_host,
             port=self.context.mqtt_port,
