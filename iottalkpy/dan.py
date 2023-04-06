@@ -535,7 +535,7 @@ class Client:
         if ctx.i_chans.get(idf) is None:
             return False
 
-        data = data if isinstance(data, list) else [data]
+        data = data if isinstance(data, (list, tuple)) else [data]
         data = json.dumps(data)
 
         # TODO: make qos configurable
